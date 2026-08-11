@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="3D Field of Junctions is a noise-robust, training-free structural prior for volumetric inverse problems, including low-dose CT, cryo-ET, and point-cloud denoising."
+    >
+    <meta name="theme-color" content="#0a2025">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="3D Field of Junctions">
+    <meta
+      property="og:description"
+      content="A noise-robust, training-free structural prior for volumetric inverse problems. ECCV 2026."
+    >
+    <meta
+      property="og:url"
+      content="https://voilalab.github.io/3D-Field-of-Junctions/"
+    >
+    <meta property="og:image" content="https://voilalab.github.io/3D-Field-of-Junctions/static/images/teaser.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="3D Field of Junctions">
+    <meta
+      name="twitter:description"
+      content="Training-free volumetric denoising and reconstruction for low-SNR inverse problems."
+    >
+    <meta name="twitter:image" content="https://voilalab.github.io/3D-Field-of-Junctions/static/images/teaser.png">
+    <title>3D Field of Junctions | ECCV 2026</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&amp;family=Noto+Serif:wght@600;700&amp;display=swap"
+      rel="stylesheet"
+    >
+    <link rel="stylesheet" href="static/css/index.css">
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "ScholarlyArticle",
+        "name": "3D Field of Junctions: A Noise-Robust, Training-Free Structural Prior for Volumetric Inverse Problems",
+        "author": [
+          { "@type": "Person", "name": "Namhoon Kim" },
+          { "@type": "Person", "name": "Narges Moeini" },
+          { "@type": "Person", "name": "Justin Romberg" },
+          { "@type": "Person", "name": "Sara Fridovich-Keil" }
+        ],
+        "datePublished": "2026-03-02",
+        "publisher": {
+          "@type": "Organization",
+          "name": "European Conference on Computer Vision"
+        },
+        "url": "https://arxiv.org/abs/2603.02149",
+        "codeRepository": "https://github.com/voilalab/3D-Field-of-Junctions"
+      }
+    </script>
+    <script defer src="static/js/index.js"></script>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <nav class="site-nav" aria-label="Primary navigation">
+      <div class="nav-inner">
+        <a class="brand" href="#top" aria-label="3D Field of Junctions home">
+          <span class="brand-mark" aria-hidden="true">3D</span>
+          <span>Field of Junctions</span>
+        </a>
+        <div class="nav-links">
+          <a href="#abstract">Abstract</a>
+          <a href="#method">Method</a>
+          <a href="#results">Results</a>
+          <a href="#citation">BibTeX</a>
+        </div>
+      </div>
+    </nav>
+
+    <main id="main-content">
+      <header class="hero" id="top">
+        <div class="hero-orb hero-orb-left" aria-hidden="true"></div>
+        <div class="hero-orb hero-orb-right" aria-hidden="true"></div>
+        <div class="container hero-content">
+          <p class="eyebrow"><span></span> ECCV 2026</p>
+          <h1><span>3D</span> Field of Junctions</h1>
+          <p class="hero-subtitle">
+            A Noise-Robust, Training-Free Structural Prior<br class="desktop-break">
+            for Volumetric Inverse Problems
+          </p>
+
+          <div class="authors" role="group" aria-label="Authors">
+            <a href="https://sites.google.com/yonsei.ac.kr/namhoon/home" target="_blank" rel="noreferrer">Namhoon Kim<sup>*</sup></a>
+            <a href="mailto:nmoeini3@gatech.edu">Narges Moeini<sup>*</sup></a>
+            <a href="https://jrom.ece.gatech.edu" target="_blank" rel="noreferrer">Justin Romberg</a>
+            <a href="https://sarafridov.github.io" target="_blank" rel="noreferrer">Sara Fridovich-Keil</a>
+          </div>
+          <p class="affiliation">
+            Georgia Institute of Technology <span aria-hidden="true">·</span>
+            <sup>*</sup> Equal contribution; order determined by coin flip
+          </p>
+
+          <div class="hero-actions" role="group" aria-label="Project links">
+            <a class="button button-primary" href="https://arxiv.org/pdf/2603.02149" target="_blank" rel="noreferrer">
+              Paper PDF <span aria-hidden="true">↗</span>
+            </a>
+            <a class="button button-secondary" href="https://arxiv.org/abs/2603.02149" target="_blank" rel="noreferrer">
+              arXiv <span aria-hidden="true">↗</span>
+            </a>
+            <a class="button button-secondary" href="https://github.com/voilalab/3D-Field-of-Junctions" target="_blank" rel="noreferrer">
+              Code <span aria-hidden="true">↗</span>
+            </a>
+            <a class="button button-secondary" href="#citation">BibTeX <span aria-hidden="true">↓</span></a>
+          </div>
+        </div>
+
+        <div class="container-wide teaser-wrap reveal">
+          <figure class="teaser-card">
+            <img
+              src="static/images/teaser.png"
+              alt="Comparison of 3D FoJ against baselines for low-dose CT, cryo-electron tomography, and point-cloud denoising."
+              width="1728"
+              height="690"
+            >
+            <figcaption>
+              One structural prior, three low-SNR domains. 3D FoJ preserves sharp volumetric structure in low-dose CT, real cryo-ET, and noisy point clouds - without a training set.
+            </figcaption>
+          </figure>
+        </div>
+      </header>
+
+      <section class="section section-intro" id="abstract">
+        <div class="container">
+          <div class="section-heading reveal">
+            <p class="section-kicker">Overview</p>
+            <h2>Structure first. No training data.</h2>
+          </div>
+
+          <div class="abstract-grid">
+            <div class="abstract-copy reveal">
+              <h3>Abstract</h3>
+              <p>
+                Volume denoising is a foundational problem in computational imaging, where many 3D inverse problems face severe measurement noise. We introduce a fully volumetric 3D Field of Junctions (3D FoJ): an explicit representation that fits junctions of 3D wedges to overlapping patches while encouraging global consistency.
+              </p>
+              <p>
+                3D FoJ requires no training data, preserves sharp edges and corners under low signal-to-noise ratio, and acts as a drop-in denoising representation for projected or proximal gradient methods. Across low-dose X-ray CT, cryogenic electron tomography, and noisy point clouds, it outperforms the evaluated classical, untrained neural, and noisy-example-trained denoisers.
+              </p>
+            </div>
+
+            <aside class="at-a-glance reveal" aria-label="3D FoJ at a glance">
+              <div class="glance-item">
+                <strong>0</strong>
+                <span>training volumes required</span>
+              </div>
+              <div class="glance-item">
+                <strong>3</strong>
+                <span>diverse 3D imaging domains</span>
+              </div>
+              <div class="glance-item">
+                <strong>1</strong>
+                <span>unified structural prior</span>
+              </div>
+            </aside>
+          </div>
+
+          <div class="contribution-grid">
+            <article class="contribution-card reveal">
+              <span class="card-index">01</span>
+              <h3>Training-free by design</h3>
+              <p>An explicit geometric prior avoids the need for clean training volumes and reduces the risk of learned hallucination.</p>
+            </article>
+            <article class="contribution-card reveal">
+              <span class="card-index">02</span>
+              <h3>Boundary preserving</h3>
+              <p>Intersecting planes model sharp corners, straight or bent boundaries, curved surfaces, and constant regions in one representation.</p>
+            </article>
+            <article class="contribution-card reveal">
+              <span class="card-index">03</span>
+              <h3>Inverse-problem ready</h3>
+              <p>Use 3D FoJ directly as a denoiser or as a projected/proximal step in a wider volumetric reconstruction loop.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-method" id="method">
+        <div class="container">
+          <div class="section-heading section-heading-light reveal">
+            <p class="section-kicker">Method</p>
+            <h2>Local junctions, globally consistent volumes.</h2>
+            <p>
+              Each overlapping 3D patch is divided by intersecting planes into uniform-valued wedges. Joint optimization aligns both geometry and appearance across neighboring patches.
+            </p>
+          </div>
+
+          <div class="method-figure reveal">
+            <div class="method-panels">
+              <figure>
+                <img src="static/images/1a.png" alt="Three-dimensional junction representing a sharp corner inside a volume patch." loading="lazy" width="564" height="871">
+                <figcaption>Sharp corner</figcaption>
+              </figure>
+              <figure>
+                <img src="static/images/1b.png" alt="Three-dimensional junction whose vertex lies on a patch boundary." loading="lazy" width="564" height="871">
+                <figcaption>Bent boundary</figcaption>
+              </figure>
+              <figure>
+                <img src="static/images/1c.png" alt="Plane configuration representing an edge through a volume patch." loading="lazy" width="564" height="871">
+                <figcaption>Planar edge</figcaption>
+              </figure>
+              <figure>
+                <img src="static/images/1d.png" alt="Junction vertex outside the patch representing a uniform region." loading="lazy" width="564" height="871">
+                <figcaption>Uniform region</figcaption>
+              </figure>
+            </div>
+            <p class="figure-note">
+              Moving the shared vertex and plane orientations gives one model enough flexibility to represent corners, edges, bends, and homogeneous regions.
+            </p>
+          </div>
+
+          <ol class="method-steps reveal">
+            <li>
+              <span>1</span>
+              <div>
+                <h3>Partition</h3>
+                <p>Represent the volume as overlapping 3D patches.</p>
+              </div>
+            </li>
+            <li>
+              <span>2</span>
+              <div>
+                <h3>Initialize</h3>
+                <p>Fit each patch's junction geometry and wedge values.</p>
+              </div>
+            </li>
+            <li>
+              <span>3</span>
+              <div>
+                <h3>Refine</h3>
+                <p>Jointly encourage boundary and color consistency.</p>
+              </div>
+            </li>
+            <li>
+              <span>4</span>
+              <div>
+                <h3>Reconstruct</h3>
+                <p>Average overlapping predictions into a clean volume.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="section section-results" id="results">
+        <div class="container-wide">
+          <div class="section-heading reveal">
+            <p class="section-kicker">Results</p>
+            <h2>Robust across modalities and noise models.</h2>
+            <p>Explore representative comparisons from the paper.</p>
+          </div>
+
+          <div class="results-explorer reveal">
+            <div class="result-tabs" role="tablist" aria-label="Result category">
+              <button type="button" role="tab" id="tab-ct" aria-controls="panel-ct" aria-selected="true" tabindex="0" data-result-tab="ct">Low-dose CT</button>
+              <button type="button" role="tab" id="tab-cryo" aria-controls="panel-cryo" aria-selected="false" tabindex="-1" data-result-tab="cryo">Cryo-ET</button>
+              <button type="button" role="tab" id="tab-point" aria-controls="panel-point" aria-selected="false" tabindex="-1" data-result-tab="point">Point clouds</button>
+            </div>
+
+            <div class="result-panels">
+              <figure class="result-panel" role="tabpanel" id="panel-ct" aria-labelledby="tab-ct" data-result-panel="ct">
+                <div class="result-image-wrap">
+                  <img src="static/images/ct-projections.png" alt="Low-dose CT comparison showing input, 3D FoJ, R-squared Gaussian, NAF, Filter2Noise, 3D total variation, and ground truth projection views." loading="lazy" width="2411" height="721">
+                </div>
+                <figcaption>
+                  <strong>Low-dose X-ray CT.</strong> Under extreme P50 shot noise, 3D FoJ recovers coherent internal structure while retaining sharper boundaries than the evaluated baselines.
+                </figcaption>
+              </figure>
+
+              <figure class="result-panel" role="tabpanel" id="panel-cryo" aria-labelledby="tab-cryo" data-result-panel="cryo" hidden>
+                <div class="result-image-wrap">
+                  <img src="static/images/cryo-et.png" alt="Cryo-ET centriole comparison across input, 3D FoJ, SC-Net, non-local means, and NMSG in three slice directions." loading="lazy" width="1691" height="669">
+                </div>
+                <figcaption>
+                  <strong>Real cryo-electron tomography.</strong> 3D FoJ suppresses noise while preserving fine centriole boundaries that are blurred or distorted by competing methods.
+                </figcaption>
+              </figure>
+
+              <figure class="result-panel" role="tabpanel" id="panel-point" aria-labelledby="tab-point" data-result-panel="point" hidden>
+                <div class="result-image-wrap">
+                  <img src="static/images/point-cloud.png" alt="Dragon point-cloud denoising comparison for outlier and spread noise, including point cloud and slice views." loading="lazy" width="1664" height="1088">
+                </div>
+                <figcaption>
+                  <strong>Point-cloud denoising.</strong> Voxelized 3D FoJ handles both outlier and spread noise while recovering clean surfaces and thin geometric details.
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-citation" id="citation">
+        <div class="container">
+          <div class="section-heading section-heading-light reveal">
+            <p class="section-kicker">Citation</p>
+            <h2>If this work is useful, please cite it.</h2>
+          </div>
+
+          <div class="bibtex-card reveal">
+            <div class="bibtex-toolbar">
+              <span>BibTeX</span>
+              <button type="button" id="copy-bibtex" aria-describedby="copy-status">Copy</button>
+              <span class="copy-status" id="copy-status" role="status" aria-live="polite"></span>
+            </div>
+            <pre><code id="bibtex-entry">@inproceedings{kim2026three,
+  title     = {3D Field of Junctions: A Noise-Robust, Training-Free
+               Structural Prior for Volumetric Inverse Problems},
+  author    = {Kim, Namhoon and Moeini, Narges and Romberg, Justin
+               and Fridovich-Keil, Sara},
+  booktitle = {European Conference on Computer Vision (ECCV)},
+  year      = {2026}
+}</code></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>3D Field of Junctions · ECCV 2026 · Georgia Tech</p>
+        <p>
+          Page structure adapted from the
+          <a href="https://github.com/eliahuhorwitz/Academic-project-page-template" target="_blank" rel="noreferrer">Academic Project Page Template</a>
+          and <a href="https://nerfies.github.io" target="_blank" rel="noreferrer">Nerfies</a>.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
