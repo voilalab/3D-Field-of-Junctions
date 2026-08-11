@@ -7,7 +7,7 @@
       name="description"
       content="3D Field of Junctions is a noise-robust, training-free structural prior for volumetric inverse problems, including low-dose CT, cryo-ET, and point-cloud denoising."
     >
-    <meta name="theme-color" content="#0a2025">
+    <meta name="theme-color" content="#c0995e">
     <meta property="og:type" content="website">
     <meta property="og:title" content="3D Field of Junctions">
     <meta
@@ -30,10 +30,8 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&amp;family=Noto+Serif:wght@600;700&amp;display=swap"
-      rel="stylesheet"
-    >
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+    <link rel="icon" href="static/images/voila.ico" sizes="64x64">
     <link rel="stylesheet" href="static/css/index.css">
 
     <script type="application/ld+json">
@@ -62,27 +60,26 @@
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
 
-    <nav class="site-nav" aria-label="Primary navigation">
+    <nav class="site-nav" aria-label="VOILA Lab navigation">
       <div class="nav-inner">
-        <a class="brand" href="#top" aria-label="3D Field of Junctions home">
-          <span class="brand-mark" aria-hidden="true">3D</span>
-          <span>Field of Junctions</span>
+        <a class="brand" href="https://voilalab.github.io/" aria-label="VOILA Lab home">
+          <img src="static/images/voila.ico" alt="" width="30" height="30">
+          <strong>VOILA Lab @ GT</strong>
         </a>
         <div class="nav-links">
-          <a href="#abstract">Abstract</a>
-          <a href="#method">Method</a>
-          <a href="#results">Results</a>
-          <a href="#citation">BibTeX</a>
+          <a href="https://voilalab.github.io/">Home</a>
+          <a href="https://voilalab.github.io/team">Team</a>
+          <a href="https://voilalab.github.io/research">Research</a>
+          <a href="https://voilalab.github.io/papers">Papers</a>
+          <a class="nav-active" href="#top" aria-current="page">3D FoJ</a>
         </div>
       </div>
     </nav>
 
     <main id="main-content">
       <header class="hero" id="top">
-        <div class="hero-orb hero-orb-left" aria-hidden="true"></div>
-        <div class="hero-orb hero-orb-right" aria-hidden="true"></div>
         <div class="container hero-content">
-          <p class="eyebrow"><span></span> ECCV 2026</p>
+          <p class="eyebrow">VOILA Lab @ GT <span aria-hidden="true">/</span> ECCV 2026</p>
           <h1><span>3D</span> Field of Junctions</h1>
           <p class="hero-subtitle">
             A Noise-Robust, Training-Free Structural Prior<br class="desktop-break">
@@ -299,7 +296,7 @@
 
       <section class="section section-citation" id="citation">
         <div class="container">
-          <div class="section-heading section-heading-light reveal">
+          <div class="section-heading reveal">
             <p class="section-kicker">Citation</p>
             <h2>If this work is useful, please cite it.</h2>
           </div>
@@ -325,12 +322,22 @@
 
     <footer class="site-footer">
       <div class="container footer-inner">
-        <p>3D Field of Junctions · ECCV 2026 · Georgia Tech</p>
-        <p>
-          Page structure adapted from the
-          <a href="https://github.com/eliahuhorwitz/Academic-project-page-template" target="_blank" rel="noreferrer">Academic Project Page Template</a>
-          and <a href="https://nerfies.github.io" target="_blank" rel="noreferrer">Nerfies</a>.
-        </p>
+        <div class="footer-grid">
+          <div>
+            <h2>About</h2>
+            <a href="https://ml.gatech.edu/">Machine Learning Center</a><br>
+            <a href="https://ece.gatech.edu/">School of ECE</a><br>
+            <a href="https://coe.gatech.edu/">College of Engineering</a><br>
+            Georgia Tech
+          </div>
+          <div>
+            <h2>Project</h2>
+            <a href="https://arxiv.org/abs/2603.02149">Paper on arXiv</a><br>
+            <a href="https://github.com/voilalab/3D-Field-of-Junctions">Source code</a><br>
+            <a href="https://voilalab.github.io/">VOILA Lab @ GT</a>
+          </div>
+        </div>
+        <p class="footer-copyright">3D Field of Junctions · ECCV 2026<br>Part of VOILA Lab @ Georgia Tech</p>
       </div>
     </footer>
   </body>

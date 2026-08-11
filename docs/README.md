@@ -7,6 +7,6 @@ Volumetric Inverse Problems."
 The page is intentionally dependency-free and can be served directly with
 GitHub Pages from the repository's `/docs` directory.
 
-The page structure is adapted from the Academic Project Page Template and the
-Nerfies project page. Paper figures are from the authors' CC BY 4.0 arXiv
-submission.
+The visual system follows the VOILA Lab @ GT website so the project page feels
+like part of the lab's main site. Paper figures are from the authors' CC BY 4.0
+arXiv submission.
