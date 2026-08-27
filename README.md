@@ -1,6 +1,9 @@
 
 # 3D Field of Junctions
 ----------------------------------------------------------------------------
+
+**[Project page and interactive demo](https://voilalab.github.io/3D-Field-of-Junctions/)**
+
 ## Requirements
 
 The code is implemented in pytorch. It has been tested using pytorch 1.6 but it should work for other pytorch 1.x versions. The following packages are required:
@@ -73,6 +76,5 @@ params = torch.cat([foj.angles, foj.x0y0z0], dim=1)
 dists, _, patches = foj.get_dists_and_patches_3d(params)
 smoothed_img = foj.local2global_3d(patches)[0].permute(1, 2, 3, 0).detach().cpu().numpy()
 ```        
-
 
 
