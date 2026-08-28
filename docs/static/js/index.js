@@ -20,7 +20,7 @@ function activateResult(tab) {
 tabs.forEach((tab, index) => {
   tab.addEventListener("click", () => activateResult(tab));
   tab.addEventListener("keydown", (event) => {
-    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
 
     event.preventDefault();
     let nextIndex = index;
@@ -37,344 +37,281 @@ tabs.forEach((tab, index) => {
 const demoRoot = document.querySelector("[data-foj-demo]");
 
 if (demoRoot) {
-  const VOLUME_SIZE = 26;
-  const CHANNEL_SIZE = VOLUME_SIZE ** 3;
-  const PATCH_RADIUS = 4;
-  const GOLD = [192, 153, 94];
-  const examples = {
-    "sharp-corner": {
-      title: "Sharp corner",
-      file: "static/data/sharp-corner.bin",
-      description: "Three intersecting surfaces meet at one volumetric corner. Move across the junction to compare the noisy voxels with the locally fitted wedge structure."
-    },
-    "bent-boundary": {
-      title: "Bent boundary",
-      file: "static/data/bent-boundary.bin",
-      description: "The junction vertex sits close to the volume boundary, producing a bent interface that changes character across the three orthogonal views."
-    },
-    "planar-edge": {
-      title: "Planar edge",
-      file: "static/data/planar-edge.bin",
-      description: "A simpler two-region interface shows how overlapping 3D junction patches preserve a clean plane despite severe low-photon noise."
-    },
-    "engine-ct": {
-      title: "Engine CT",
-      file: "static/data/engine-ct.bin",
-      description: "A real engine CT crop from the paper data. Inspect the thin material boundaries and internal cavities in all three orientations."
-    }
+  const VOLUME_SIZE = 256;
+  const ATLAS_SIZE = 4096;
+  const TILES_PER_ROW = 16;
+  const axisColors = {
+    x: "#e07a72",
+    y: "#73b487",
+    z: "#719ed5"
   };
+  const sources = [
+    { method: "cgls", label: "CGLS", file: "static/data/engine-p50-cgls.webp" },
+    { method: "foj", label: "3D FoJ", file: "static/data/engine-p50-foj.webp" },
+    { method: "gt", label: "ground truth", file: "static/data/engine-ground-truth.webp" }
+  ];
 
-  const mainCanvas = demoRoot.querySelector("[data-demo-main]");
-  const mainContext = mainCanvas.getContext("2d");
-  const scratchCanvas = document.createElement("canvas");
-  const scratchContext = scratchCanvas.getContext("2d");
-  scratchCanvas.width = VOLUME_SIZE;
-  scratchCanvas.height = VOLUME_SIZE;
-
-  const patchCanvases = Object.fromEntries(
-    Array.from(demoRoot.querySelectorAll("[data-demo-patch]")).map((canvas) => [canvas.dataset.demoPatch, canvas])
-  );
-  const exampleButtons = Array.from(demoRoot.querySelectorAll("[data-demo-example]"));
-  const axisButtons = Array.from(demoRoot.querySelectorAll("[data-demo-axis]"));
-  const sliceInput = demoRoot.querySelector("[data-demo-slice]");
-  const sliceOutput = demoRoot.querySelector("[data-demo-slice-output]");
-  const boundaryButton = demoRoot.querySelector("[data-demo-boundary]");
-  const boundaryButtonTitle = boundaryButton.querySelector("strong");
+  const views = Array.from(demoRoot.querySelectorAll("[data-demo-view]"));
   const status = demoRoot.querySelector("[data-demo-status]");
-  const title = demoRoot.querySelector("[data-demo-title]");
-  const viewLabel = demoRoot.querySelector("[data-demo-view-label]");
-  const description = demoRoot.querySelector("[data-demo-description]");
-  const coordinateLabels = {
+  const matrix = demoRoot.querySelector("[data-demo-matrix]");
+  const sliders = Object.fromEntries(
+    Array.from(demoRoot.querySelectorAll("[data-demo-axis-slider]")).map((slider) => [slider.dataset.demoAxisSlider, slider])
+  );
+  const sliderOutputs = Object.fromEntries(
+    Array.from(demoRoot.querySelectorAll("[data-demo-axis-output]")).map((output) => [output.dataset.demoAxisOutput, output])
+  );
+  const coordinateOutputs = {
     x: demoRoot.querySelector("[data-demo-x]"),
     y: demoRoot.querySelector("[data-demo-y]"),
     z: demoRoot.querySelector("[data-demo-z]")
   };
-
-  const cache = new Map();
+  const planeOutputs = Object.fromEntries(
+    Array.from(demoRoot.querySelectorAll("[data-demo-plane-output]")).map((output) => [output.dataset.demoPlaneOutput, output])
+  );
   const state = {
-    example: "sharp-corner",
-    axis: "xy",
-    slice: 13,
-    point: { x: 13, y: 13, z: 13 },
-    volume: null,
-    overlayPinned: false,
-    spaceHeld: false,
-    loadToken: 0
+    point: { x: 128, y: 128, z: 96 },
+    atlases: {},
+    renderQueued: false
   };
 
-  function volumeIndex(x, y, z) {
-    return z * VOLUME_SIZE * VOLUME_SIZE + y * VOLUME_SIZE + x;
+  function clamp(value) {
+    return Math.max(0, Math.min(VOLUME_SIZE - 1, Math.round(value)));
   }
 
-  function clampVoxel(value) {
-    return Math.max(0, Math.min(VOLUME_SIZE - 1, value));
+  function atlasIndex(x, y, z) {
+    const atlasRow = Math.floor(z / TILES_PER_ROW) * VOLUME_SIZE + y;
+    const atlasColumn = (z % TILES_PER_ROW) * VOLUME_SIZE + x;
+    return atlasRow * ATLAS_SIZE + atlasColumn;
   }
 
-  function displayToVoxel(u, v) {
-    if (state.axis === "yz") return { x: state.slice, y: u, z: v };
-    if (state.axis === "xz") return { x: u, y: state.slice, z: v };
-    return { x: u, y: v, z: state.slice };
+  function sample(atlas, x, y, z) {
+    return atlas[atlasIndex(x, y, z)];
   }
 
-  function voxelToDisplay(point = state.point) {
-    if (state.axis === "yz") return { u: point.y, v: point.z };
-    if (state.axis === "xz") return { u: point.x, v: point.z };
-    return { u: point.x, v: point.y };
+  function viewCoordinates(plane, u, v) {
+    if (plane === "yz") return { x: state.point.x, y: u, z: v };
+    if (plane === "xz") return { x: u, y: state.point.y, z: v };
+    return { x: u, y: v, z: state.point.z };
   }
 
-  function sample(channel, u, v) {
-    const voxel = displayToVoxel(clampVoxel(u), clampVoxel(v));
-    return state.volume[channel][volumeIndex(voxel.x, voxel.y, voxel.z)];
+  function crosshairForPlane(plane) {
+    if (plane === "yz") return { horizontal: "y", vertical: "z" };
+    if (plane === "xz") return { horizontal: "x", vertical: "z" };
+    return { horizontal: "x", vertical: "y" };
   }
 
-  function drawSlice() {
-    if (!state.volume) return;
-    const image = scratchContext.createImageData(VOLUME_SIZE, VOLUME_SIZE);
-    const showBoundary = state.overlayPinned || state.spaceHeld;
+  function fixedAxisForPlane(plane) {
+    if (plane === "yz") return "x";
+    if (plane === "xz") return "y";
+    return "z";
+  }
+
+  function drawCrosshair(context, plane) {
+    const axes = crosshairForPlane(plane);
+    const horizontalPosition = state.point[axes.horizontal] + 0.5;
+    const verticalPosition = state.point[axes.vertical] + 0.5;
+
+    context.save();
+    context.lineWidth = 1.25;
+    context.shadowColor = "rgba(0, 0, 0, 0.75)";
+    context.shadowBlur = 2;
+
+    context.strokeStyle = axisColors[axes.horizontal];
+    context.beginPath();
+    context.moveTo(horizontalPosition, 0);
+    context.lineTo(horizontalPosition, VOLUME_SIZE);
+    context.stroke();
+
+    context.strokeStyle = axisColors[axes.vertical];
+    context.beginPath();
+    context.moveTo(0, verticalPosition);
+    context.lineTo(VOLUME_SIZE, verticalPosition);
+    context.stroke();
+
+    context.fillStyle = "#ffffff";
+    context.beginPath();
+    context.arc(horizontalPosition, verticalPosition, 2.3, 0, Math.PI * 2);
+    context.fill();
+    context.restore();
+  }
+
+  function drawView(canvas) {
+    const atlas = state.atlases[canvas.dataset.demoMethod];
+    if (!atlas) return;
+
+    const plane = canvas.dataset.demoView;
+    const context = canvas.getContext("2d");
+    const image = canvas._sliceImage || context.createImageData(VOLUME_SIZE, VOLUME_SIZE);
+    canvas._sliceImage = image;
 
     for (let v = 0; v < VOLUME_SIZE; v += 1) {
       for (let u = 0; u < VOLUME_SIZE; u += 1) {
-        const imageIndex = (v * VOLUME_SIZE + u) * 4;
-        const base = sample("input", u, v);
-        let red = base;
-        let green = base;
-        let blue = base;
-
-        if (showBoundary) {
-          const boundary = sample("boundary", u, v) / 255;
-          const alpha = Math.min(0.92, boundary * 1.45);
-          red = Math.round(base * (1 - alpha) + GOLD[0] * alpha);
-          green = Math.round(base * (1 - alpha) + GOLD[1] * alpha);
-          blue = Math.round(base * (1 - alpha) + GOLD[2] * alpha);
-        }
-
-        image.data[imageIndex] = red;
-        image.data[imageIndex + 1] = green;
-        image.data[imageIndex + 2] = blue;
-        image.data[imageIndex + 3] = 255;
+        const voxel = viewCoordinates(plane, u, v);
+        const value = sample(atlas, voxel.x, voxel.y, voxel.z);
+        const pixel = (v * VOLUME_SIZE + u) * 4;
+        image.data[pixel] = value;
+        image.data[pixel + 1] = value;
+        image.data[pixel + 2] = value;
+        image.data[pixel + 3] = 255;
       }
     }
 
-    scratchContext.putImageData(image, 0, 0);
-    mainContext.imageSmoothingEnabled = false;
-    mainContext.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
-    mainContext.drawImage(scratchCanvas, 0, 0, mainCanvas.width, mainCanvas.height);
+    context.putImageData(image, 0, 0);
+    drawCrosshair(context, plane);
 
-    const { u, v } = voxelToDisplay();
-    const scale = mainCanvas.width / VOLUME_SIZE;
-    const patchStart = Math.max(0, u - PATCH_RADIUS);
-    const patchEnd = Math.min(VOLUME_SIZE, u + PATCH_RADIUS + 1);
-    const patchTop = Math.max(0, v - PATCH_RADIUS);
-    const patchBottom = Math.min(VOLUME_SIZE, v + PATCH_RADIUS + 1);
-
-    mainContext.save();
-    mainContext.strokeStyle = "rgba(255, 255, 255, 0.85)";
-    mainContext.lineWidth = 1;
-    mainContext.beginPath();
-    mainContext.moveTo((u + 0.5) * scale, 0);
-    mainContext.lineTo((u + 0.5) * scale, mainCanvas.height);
-    mainContext.moveTo(0, (v + 0.5) * scale);
-    mainContext.lineTo(mainCanvas.width, (v + 0.5) * scale);
-    mainContext.stroke();
-    mainContext.strokeStyle = `rgb(${GOLD.join(", ")})`;
-    mainContext.lineWidth = 3;
-    mainContext.strokeRect(
-      patchStart * scale + 1.5,
-      patchTop * scale + 1.5,
-      (patchEnd - patchStart) * scale - 3,
-      (patchBottom - patchTop) * scale - 3
+    const method = sources.find((source) => source.method === canvas.dataset.demoMethod)?.label || canvas.dataset.demoMethod;
+    const fixedAxis = fixedAxisForPlane(plane);
+    canvas.setAttribute(
+      "aria-label",
+      `${method} ${plane.toUpperCase()} view at ${fixedAxis} ${state.point[fixedAxis]}. Linked voxel x ${state.point.x}, y ${state.point.y}, z ${state.point.z}.`
     );
-    mainContext.restore();
-  }
-
-  function drawPatch(channel, canvas) {
-    if (!state.volume || !canvas) return;
-    const patchSize = PATCH_RADIUS * 2 + 1;
-    const buffer = document.createElement("canvas");
-    buffer.width = patchSize;
-    buffer.height = patchSize;
-    const bufferContext = buffer.getContext("2d");
-    const image = bufferContext.createImageData(patchSize, patchSize);
-    const center = voxelToDisplay();
-
-    for (let patchV = 0; patchV < patchSize; patchV += 1) {
-      for (let patchU = 0; patchU < patchSize; patchU += 1) {
-        const u = center.u + patchU - PATCH_RADIUS;
-        const v = center.v + patchV - PATCH_RADIUS;
-        const value = sample(channel, u, v);
-        const imageIndex = (patchV * patchSize + patchU) * 4;
-
-        if (channel === "boundary") {
-          const strength = value / 255;
-          image.data[imageIndex] = Math.round(GOLD[0] * strength);
-          image.data[imageIndex + 1] = Math.round(GOLD[1] * strength);
-          image.data[imageIndex + 2] = Math.round(GOLD[2] * strength);
-        } else {
-          image.data[imageIndex] = value;
-          image.data[imageIndex + 1] = value;
-          image.data[imageIndex + 2] = value;
-        }
-        image.data[imageIndex + 3] = 255;
-      }
-    }
-
-    bufferContext.putImageData(image, 0, 0);
-    const context = canvas.getContext("2d");
-    context.imageSmoothingEnabled = false;
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(buffer, 0, 0, canvas.width, canvas.height);
-    context.strokeStyle = "rgba(255, 255, 255, 0.72)";
-    context.lineWidth = 2;
-    const cell = canvas.width / patchSize;
-    context.strokeRect(PATCH_RADIUS * cell + 1, PATCH_RADIUS * cell + 1, cell - 2, cell - 2);
   }
 
   function updateLabels() {
-    const fixedAxis = state.axis === "xy" ? "z" : state.axis === "yz" ? "x" : "y";
-    const orientation = state.axis === "xy" ? "XY · axial" : state.axis === "yz" ? "YZ · sagittal" : "XZ · coronal";
-    viewLabel.textContent = `${orientation} · ${fixedAxis} = ${state.slice}`;
-    sliceOutput.textContent = `${state.slice} / ${VOLUME_SIZE - 1}`;
-    sliceInput.value = String(state.slice);
-    Object.entries(coordinateLabels).forEach(([axis, element]) => {
-      element.textContent = String(state.point[axis]);
+    Object.keys(state.point).forEach((axis) => {
+      const value = state.point[axis];
+      sliders[axis].value = String(value);
+      sliderOutputs[axis].textContent = String(value);
+      coordinateOutputs[axis].textContent = String(value);
     });
-    mainCanvas.setAttribute(
-      "aria-label",
-      `Interactive ${orientation.toLowerCase()} slice ${state.slice}. Selected voxel x ${state.point.x}, y ${state.point.y}, z ${state.point.z}.`
-    );
+    planeOutputs.xy.textContent = `z = ${state.point.z}`;
+    planeOutputs.yz.textContent = `x = ${state.point.x}`;
+    planeOutputs.xz.textContent = `y = ${state.point.y}`;
   }
 
-  function renderDemo() {
-    if (!state.volume) return;
+  function render() {
+    state.renderQueued = false;
     updateLabels();
-    drawSlice();
-    Object.entries(patchCanvases).forEach(([channel, canvas]) => drawPatch(channel, canvas));
+    views.forEach(drawView);
   }
 
-  function setSlice(value) {
-    state.slice = clampVoxel(Number(value));
-    if (state.axis === "xy") state.point.z = state.slice;
-    if (state.axis === "yz") state.point.x = state.slice;
-    if (state.axis === "xz") state.point.y = state.slice;
-    renderDemo();
+  function scheduleRender() {
+    if (state.renderQueued) return;
+    state.renderQueued = true;
+    window.requestAnimationFrame(render);
   }
 
-  function setAxis(axis) {
-    state.axis = axis;
-    if (axis === "xy") state.slice = state.point.z;
-    if (axis === "yz") state.slice = state.point.x;
-    if (axis === "xz") state.slice = state.point.y;
-    axisButtons.forEach((button) => {
-      const isActive = button.dataset.demoAxis === axis;
-      button.classList.toggle("is-active", isActive);
-      button.setAttribute("aria-pressed", String(isActive));
-    });
-    renderDemo();
-  }
-
-  function setPointerPosition(event) {
-    if (!state.volume) return;
-    const bounds = mainCanvas.getBoundingClientRect();
-    const u = clampVoxel(Math.floor(((event.clientX - bounds.left) / bounds.width) * VOLUME_SIZE));
-    const v = clampVoxel(Math.floor(((event.clientY - bounds.top) / bounds.height) * VOLUME_SIZE));
-    state.point = displayToVoxel(u, v);
-    renderDemo();
-  }
-
-  async function fetchVolume(example) {
-    if (cache.has(example.file)) return cache.get(example.file);
-    const response = await fetch(example.file);
-    if (!response.ok) throw new Error(`Could not load ${example.file}`);
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    if (bytes.length !== CHANNEL_SIZE * 3) throw new Error("Unexpected demo volume size");
-    const volume = {
-      input: bytes.subarray(0, CHANNEL_SIZE),
-      fit: bytes.subarray(CHANNEL_SIZE, CHANNEL_SIZE * 2),
-      boundary: bytes.subarray(CHANNEL_SIZE * 2)
+  function setPoint(nextPoint) {
+    state.point = {
+      x: clamp(nextPoint.x),
+      y: clamp(nextPoint.y),
+      z: clamp(nextPoint.z)
     };
-    cache.set(example.file, volume);
-    return volume;
+    scheduleRender();
   }
 
-  async function loadExample(slug) {
-    const example = examples[slug];
-    if (!example) return;
-    const loadToken = state.loadToken + 1;
-    state.loadToken = loadToken;
-    state.example = slug;
-    title.textContent = example.title;
-    description.textContent = example.description;
-    status.textContent = `Loading ${example.title}…`;
-    demoRoot.setAttribute("aria-busy", "true");
-    exampleButtons.forEach((button) => {
-      const isActive = button.dataset.demoExample === slug;
-      button.classList.toggle("is-active", isActive);
-      button.setAttribute("aria-pressed", String(isActive));
+  function updatePointFromPointer(canvas, event) {
+    if (!state.atlases[canvas.dataset.demoMethod]) return;
+    const bounds = canvas.getBoundingClientRect();
+    const u = clamp(((event.clientX - bounds.left) / bounds.width) * VOLUME_SIZE);
+    const v = clamp(((event.clientY - bounds.top) / bounds.height) * VOLUME_SIZE);
+    const plane = canvas.dataset.demoView;
+    const nextPoint = { ...state.point };
+
+    if (plane === "yz") {
+      nextPoint.y = u;
+      nextPoint.z = v;
+    } else if (plane === "xz") {
+      nextPoint.x = u;
+      nextPoint.z = v;
+    } else {
+      nextPoint.x = u;
+      nextPoint.y = v;
+    }
+    setPoint(nextPoint);
+  }
+
+  function moveWithinPlane(canvas, horizontalDelta, verticalDelta) {
+    const axes = crosshairForPlane(canvas.dataset.demoView);
+    setPoint({
+      ...state.point,
+      [axes.horizontal]: state.point[axes.horizontal] + horizontalDelta,
+      [axes.vertical]: state.point[axes.vertical] + verticalDelta
+    });
+  }
+
+  async function loadAtlas(source, index) {
+    status.textContent = `Loading ${source.label} volume · ${index + 1} / ${sources.length}…`;
+    const image = new Image();
+    image.decoding = "async";
+    image.src = source.file;
+    await new Promise((resolve, reject) => {
+      image.addEventListener("load", resolve, { once: true });
+      image.addEventListener("error", () => reject(new Error(`Could not load ${source.file}`)), { once: true });
     });
 
+    const atlasCanvas = document.createElement("canvas");
+    atlasCanvas.width = ATLAS_SIZE;
+    atlasCanvas.height = ATLAS_SIZE;
+    const atlasContext = atlasCanvas.getContext("2d", { willReadFrequently: true });
+    atlasContext.drawImage(image, 0, 0);
+    const rgba = atlasContext.getImageData(0, 0, ATLAS_SIZE, ATLAS_SIZE).data;
+    const grayscale = new Uint8Array(ATLAS_SIZE * ATLAS_SIZE);
+
+    for (let pixel = 0; pixel < grayscale.length; pixel += 1) {
+      grayscale[pixel] = rgba[pixel * 4];
+    }
+
+    atlasCanvas.width = 1;
+    atlasCanvas.height = 1;
+    state.atlases[source.method] = grayscale;
+    scheduleRender();
+  }
+
+  Object.entries(sliders).forEach(([axis, slider]) => {
+    slider.addEventListener("input", () => {
+      setPoint({ ...state.point, [axis]: Number(slider.value) });
+    });
+  });
+
+  views.forEach((canvas) => {
+    canvas.addEventListener("pointermove", (event) => updatePointFromPointer(canvas, event));
+    canvas.addEventListener("pointerdown", (event) => {
+      canvas.focus();
+      canvas.setPointerCapture?.(event.pointerId);
+      updatePointFromPointer(canvas, event);
+    });
+    canvas.addEventListener(
+      "wheel",
+      (event) => {
+        event.preventDefault();
+        const fixedAxis = fixedAxisForPlane(canvas.dataset.demoView);
+        setPoint({ ...state.point, [fixedAxis]: state.point[fixedAxis] + Math.sign(event.deltaY) });
+      },
+      { passive: false }
+    );
+    canvas.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "PageUp", "PageDown"].includes(event.key)) return;
+      event.preventDefault();
+      if (event.key === "ArrowLeft") moveWithinPlane(canvas, -1, 0);
+      if (event.key === "ArrowRight") moveWithinPlane(canvas, 1, 0);
+      if (event.key === "ArrowUp") moveWithinPlane(canvas, 0, -1);
+      if (event.key === "ArrowDown") moveWithinPlane(canvas, 0, 1);
+      if (event.key === "PageUp" || event.key === "PageDown") {
+        const fixedAxis = fixedAxisForPlane(canvas.dataset.demoView);
+        setPoint({ ...state.point, [fixedAxis]: state.point[fixedAxis] + (event.key === "PageUp" ? 1 : -1) });
+      }
+    });
+  });
+
+  async function initializeDemo() {
     try {
-      const volume = await fetchVolume(example);
-      if (loadToken !== state.loadToken) return;
-      state.volume = volume;
-      state.point = { x: 13, y: 13, z: 13 };
-      state.slice = 13;
+      for (let index = 0; index < sources.length; index += 1) {
+        await loadAtlas(sources[index], index);
+      }
       status.textContent = "";
       demoRoot.setAttribute("aria-busy", "false");
-      renderDemo();
+      matrix.removeAttribute("aria-hidden");
+      render();
     } catch (error) {
-      if (loadToken !== state.loadToken) return;
       console.error(error);
-      status.textContent = "Demo data could not be loaded. Please refresh the page.";
+      status.textContent = "The experiment volume could not be loaded. Please refresh the page.";
       demoRoot.setAttribute("aria-busy", "false");
     }
   }
 
-  exampleButtons.forEach((button) => {
-    button.addEventListener("click", () => loadExample(button.dataset.demoExample));
-  });
-  axisButtons.forEach((button) => {
-    button.addEventListener("click", () => setAxis(button.dataset.demoAxis));
-  });
-  sliceInput.addEventListener("input", () => setSlice(sliceInput.value));
-  mainCanvas.addEventListener("pointermove", setPointerPosition);
-  mainCanvas.addEventListener("pointerdown", (event) => {
-    mainCanvas.focus();
-    setPointerPosition(event);
-  });
-  boundaryButton.addEventListener("click", () => {
-    state.overlayPinned = !state.overlayPinned;
-    boundaryButton.setAttribute("aria-pressed", String(state.overlayPinned));
-    boundaryButtonTitle.textContent = state.overlayPinned ? "Hide global boundaries" : "Show global boundaries";
-    renderDemo();
-  });
-
-  document.addEventListener("keydown", (event) => {
-    const activeInDemo = demoRoot.contains(document.activeElement);
-    const isEditable = ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName);
-    if (event.code === "Space" && activeInDemo && !isEditable) {
-      event.preventDefault();
-      if (!state.spaceHeld) {
-        state.spaceHeld = true;
-        renderDemo();
-      }
-    }
-    if (!activeInDemo || isEditable) return;
-    if (event.key === "1") setAxis("xy");
-    if (event.key === "2") setAxis("yz");
-    if (event.key === "3") setAxis("xz");
-    if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-      event.preventDefault();
-      setSlice(state.slice + (event.key === "ArrowRight" ? 1 : -1));
-    }
-  });
-
-  document.addEventListener("keyup", (event) => {
-    if (event.code !== "Space" || !state.spaceHeld) return;
-    state.spaceHeld = false;
-    renderDemo();
-  });
-
-  loadExample(state.example);
+  updateLabels();
+  initializeDemo();
 }
 
 const copyButton = document.querySelector("#copy-bibtex");

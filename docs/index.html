@@ -133,110 +133,154 @@
         <div class="container-wide">
           <div class="section-heading reveal">
             <p class="section-kicker">Interactive demo</p>
-            <h2>Explore a 3D field of junctions.</h2>
+            <h2>One volume. Three views. Every voxel linked.</h2>
             <p>
-              Move through a noisy volume, inspect the local patch at any voxel, and compare the fitted 3D junction with its boundary map. Like the <a href="https://vision.seas.harvard.edu/foj/" target="_blank" rel="noreferrer">original 2D FoJ demo</a>, hold the spacebar to reveal the global boundaries.
+              Explore the actual 256³ engine CT experiment from the paper under P50 shot noise. Every panel shows the same 3D coordinate across axial, sagittal, and coronal planes—move in any view and the other eight update with it.
             </p>
           </div>
 
           <div class="demo-shell reveal" data-foj-demo aria-busy="true">
-            <div class="demo-toolbar">
-              <fieldset class="demo-control-group" aria-label="Demo volume">
-                <legend>Volume</legend>
-                <div class="demo-segmented" role="group">
-                  <button type="button" class="is-active" aria-pressed="true" data-demo-example="sharp-corner">Sharp corner</button>
-                  <button type="button" aria-pressed="false" data-demo-example="bent-boundary">Bent boundary</button>
-                  <button type="button" aria-pressed="false" data-demo-example="planar-edge">Planar edge</button>
-                  <button type="button" aria-pressed="false" data-demo-example="engine-ct">Engine CT</button>
-                </div>
-              </fieldset>
-
-              <fieldset class="demo-control-group" aria-label="Slice orientation">
-                <legend>Slice orientation</legend>
-                <div class="demo-segmented" role="group">
-                  <button type="button" class="is-active" aria-pressed="true" data-demo-axis="xy">XY · axial</button>
-                  <button type="button" aria-pressed="false" data-demo-axis="yz">YZ · sagittal</button>
-                  <button type="button" aria-pressed="false" data-demo-axis="xz">XZ · coronal</button>
-                </div>
-              </fieldset>
-            </div>
-
-            <div class="demo-body">
-              <div class="demo-stage-column">
-                <div class="demo-stage-head">
-                  <div>
-                    <span class="demo-micro-label">Noisy input volume</span>
-                    <strong data-demo-title>Sharp corner</strong>
-                  </div>
-                  <span class="demo-view-label" data-demo-view-label>XY slice · z = 13</span>
-                </div>
-
-                <div class="demo-canvas-wrap">
-                  <canvas
-                    class="demo-main-canvas"
-                    data-demo-main
-                    width="520"
-                    height="520"
-                    tabindex="0"
-                    aria-label="Interactive axial slice of a noisy 3D volume. Move the pointer to inspect a local patch."
-                  ></canvas>
-                  <span class="demo-loading" data-demo-status role="status" aria-live="polite">Loading precomputed 3D FoJ volume…</span>
-                </div>
-
-                <div class="demo-slice-control">
-                  <label for="demo-slice">Slice</label>
-                  <input id="demo-slice" data-demo-slice type="range" min="0" max="25" value="13" step="1">
-                  <output data-demo-slice-output for="demo-slice">13 / 25</output>
+            <div class="demo-header">
+              <div class="demo-experiment-title">
+                <span class="demo-live-mark" aria-hidden="true"></span>
+                <div>
+                  <span class="demo-micro-label">Paper experiment · low-dose CT</span>
+                  <strong>Engine · P50</strong>
                 </div>
               </div>
-
-              <aside class="demo-guide" aria-label="Demo instructions">
-                <div class="demo-coordinate-card">
-                  <span class="demo-micro-label">Selected voxel</span>
-                  <div class="demo-coordinates" aria-live="polite">
-                    <span>x <strong data-demo-x>13</strong></span>
-                    <span>y <strong data-demo-y>13</strong></span>
-                    <span>z <strong data-demo-z>13</strong></span>
-                  </div>
-                </div>
-
-                <button type="button" class="demo-boundary-button" data-demo-boundary aria-pressed="false">
-                  <span class="demo-boundary-swatch" aria-hidden="true"></span>
-                  <span><strong>Show global boundaries</strong><small>Hold spacebar or tap to pin</small></span>
-                </button>
-
-                <div class="demo-notes">
-                  <p><kbd>Space</kbd> global boundary map</p>
-                  <p><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> change orientation</p>
-                  <p><kbd>←</kbd><kbd>→</kbd> move through slices</p>
-                </div>
-
-                <p class="demo-description" data-demo-description>
-                  Three intersecting surfaces meet at a single volumetric corner.
-                </p>
-              </aside>
+              <div class="demo-experiment-facts" aria-label="Experiment details">
+                <span><strong>256³</strong> voxels</span>
+                <span><strong>20</strong> projection views</span>
+                <span><strong>50</strong> photons / pixel</span>
+              </div>
             </div>
 
-            <div class="demo-patches" aria-label="Local patch comparison">
-              <figure>
-                <figcaption><strong>Noisy input patch</strong><span>The observed P5 Poisson-noisy voxels.</span></figcaption>
-                <canvas data-demo-patch="input" width="240" height="240" aria-label="Enlarged noisy input patch"></canvas>
-              </figure>
-              <figure>
-                <figcaption><strong>3D junction fit</strong><span>Overlapping wedge predictions after optimization.</span></figcaption>
-                <canvas data-demo-patch="fit" width="240" height="240" aria-label="Enlarged 3D FoJ fitted patch"></canvas>
-              </figure>
-              <figure>
-                <figcaption><strong>Junction boundaries</strong><span>The fitted local structural boundary response.</span></figcaption>
-                <canvas data-demo-patch="boundary" width="240" height="240" aria-label="Enlarged 3D FoJ boundary patch"></canvas>
-              </figure>
+            <div class="demo-coordinate-bar">
+              <div class="demo-coordinate-readout" aria-live="polite">
+                <span class="demo-micro-label">Linked voxel</span>
+                <strong>(<span data-demo-x>128</span>, <span data-demo-y>128</span>, <span data-demo-z>96</span>)</strong>
+              </div>
+
+              <div class="demo-axis-sliders">
+                <label>
+                  <span>x <output data-demo-axis-output="x">128</output></span>
+                  <input type="range" min="0" max="255" value="128" step="1" data-demo-axis-slider="x" aria-label="X coordinate">
+                </label>
+                <label>
+                  <span>y <output data-demo-axis-output="y">128</output></span>
+                  <input type="range" min="0" max="255" value="128" step="1" data-demo-axis-slider="y" aria-label="Y coordinate">
+                </label>
+                <label>
+                  <span>z <output data-demo-axis-output="z">96</output></span>
+                  <input type="range" min="0" max="255" value="96" step="1" data-demo-axis-slider="z" aria-label="Z coordinate">
+                </label>
+              </div>
+
+              <div class="demo-interaction-hint">
+                <span>Drag</span> crosshair · <span>Scroll</span> through depth
+              </div>
+            </div>
+
+            <div class="demo-matrix-wrap">
+              <div class="demo-loading" data-demo-status role="status" aria-live="polite">
+                Loading the 256³ experiment volume…
+              </div>
+
+              <div class="demo-matrix" data-demo-matrix>
+                <div class="demo-matrix-corner" aria-hidden="true">
+                  <span>orientation</span>
+                  <span>reconstruction</span>
+                </div>
+                <div class="demo-method-head">
+                  <div>
+                    <span class="demo-micro-label">Input</span>
+                    <strong>CGLS</strong>
+                  </div>
+                  <small>20-view noisy reconstruction</small>
+                </div>
+                <div class="demo-method-head demo-method-head-ours">
+                  <div>
+                    <span class="demo-micro-label">Ours</span>
+                    <strong>3D FoJ</strong>
+                  </div>
+                  <small>12.49 dB · paper result</small>
+                </div>
+                <div class="demo-method-head">
+                  <div>
+                    <span class="demo-micro-label">Reference</span>
+                    <strong>Ground truth</strong>
+                  </div>
+                  <small>Full-resolution volume</small>
+                </div>
+
+                <div class="demo-plane-label">
+                  <strong>XY</strong>
+                  <span>axial</span>
+                  <output data-demo-plane-output="xy">z = 96</output>
+                </div>
+                <figure class="demo-view">
+                  <canvas data-demo-view="xy" data-demo-method="cgls" width="256" height="256" tabindex="0" aria-label="CGLS axial view"></canvas>
+                  <figcaption>CGLS · XY</figcaption>
+                </figure>
+                <figure class="demo-view demo-view-ours">
+                  <canvas data-demo-view="xy" data-demo-method="foj" width="256" height="256" tabindex="0" aria-label="3D FoJ axial view"></canvas>
+                  <figcaption>3D FoJ · XY</figcaption>
+                </figure>
+                <figure class="demo-view">
+                  <canvas data-demo-view="xy" data-demo-method="gt" width="256" height="256" tabindex="0" aria-label="Ground-truth axial view"></canvas>
+                  <figcaption>Ground truth · XY</figcaption>
+                </figure>
+
+                <div class="demo-plane-label">
+                  <strong>YZ</strong>
+                  <span>sagittal</span>
+                  <output data-demo-plane-output="yz">x = 128</output>
+                </div>
+                <figure class="demo-view">
+                  <canvas data-demo-view="yz" data-demo-method="cgls" width="256" height="256" tabindex="0" aria-label="CGLS sagittal view"></canvas>
+                  <figcaption>CGLS · YZ</figcaption>
+                </figure>
+                <figure class="demo-view demo-view-ours">
+                  <canvas data-demo-view="yz" data-demo-method="foj" width="256" height="256" tabindex="0" aria-label="3D FoJ sagittal view"></canvas>
+                  <figcaption>3D FoJ · YZ</figcaption>
+                </figure>
+                <figure class="demo-view">
+                  <canvas data-demo-view="yz" data-demo-method="gt" width="256" height="256" tabindex="0" aria-label="Ground-truth sagittal view"></canvas>
+                  <figcaption>Ground truth · YZ</figcaption>
+                </figure>
+
+                <div class="demo-plane-label">
+                  <strong>XZ</strong>
+                  <span>coronal</span>
+                  <output data-demo-plane-output="xz">y = 128</output>
+                </div>
+                <figure class="demo-view">
+                  <canvas data-demo-view="xz" data-demo-method="cgls" width="256" height="256" tabindex="0" aria-label="CGLS coronal view"></canvas>
+                  <figcaption>CGLS · XZ</figcaption>
+                </figure>
+                <figure class="demo-view demo-view-ours">
+                  <canvas data-demo-view="xz" data-demo-method="foj" width="256" height="256" tabindex="0" aria-label="3D FoJ coronal view"></canvas>
+                  <figcaption>3D FoJ · XZ</figcaption>
+                </figure>
+                <figure class="demo-view">
+                  <canvas data-demo-view="xz" data-demo-method="gt" width="256" height="256" tabindex="0" aria-label="Ground-truth coronal view"></canvas>
+                  <figcaption>Ground truth · XZ</figcaption>
+                </figure>
+              </div>
             </div>
 
             <div class="demo-footer">
-              <p><strong>Actual 3D FoJ output.</strong> The four compact volumes were precomputed with this repository’s implementation at patch size R = 8; interaction and slicing run entirely in the browser.</p>
-              <span>P5 Poisson noise · 26³ voxels · 3 orientations</span>
+              <div>
+                <strong>Actual ECCV experiment output.</strong>
+                <p>CGLS initialization, 3D FoJ reconstruction, and ground truth are the full engine volumes used for the P50 low-dose CT evaluation—not synthetic browser examples.</p>
+              </div>
+              <div class="demo-footer-legend" aria-label="Crosshair legend">
+                <span><i class="demo-line-x" aria-hidden="true"></i>x</span>
+                <span><i class="demo-line-y" aria-hidden="true"></i>y</span>
+                <span><i class="demo-line-z" aria-hidden="true"></i>z</span>
+              </div>
             </div>
-            <noscript><p class="demo-noscript">Enable JavaScript to use the volumetric explorer.</p></noscript>
+            <noscript><p class="demo-noscript">Enable JavaScript to use the synchronized volumetric explorer.</p></noscript>
           </div>
         </div>
       </section>
