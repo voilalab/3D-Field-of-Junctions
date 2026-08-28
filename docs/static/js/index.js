@@ -243,7 +243,7 @@ if (demoRoot) {
 
   async function loadVolume() {
     status.textContent = "Loading the engine CT, junction regions, and global boundaries…";
-    const response = await fetch("static/data/junction-lab-256.bin.gz?v=engine-ct-20260828");
+    const response = await fetch("static/data/junction-lab-256.bin.gz?v=engine-ct-continuous-20260828");
     if (!response.ok) throw new Error("Could not load the junction demo volume");
     if (!("DecompressionStream" in window) || !response.body) {
       throw new Error("This browser cannot decode the compressed junction demo volume");

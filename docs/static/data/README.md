@@ -20,8 +20,8 @@ respectively.
   and combined with exact voxel-wise overlap counts
 - Boundary display: the raw global boundary response is windowed from its 75th
   to 99.5th percentile, gamma-mapped, and weighted by the fitted region's local
-  3D contrast. This suppresses arbitrary junction geometry whose two sides have
-  no meaningful intensity difference; boundary locations are not recomputed.
+  3D contrast. A low-intensity contour from that same fitted region supplies a
+  continuous baseline, while aligned global junction evidence remains brighter.
 
 Regenerate the asset with `scripts/generate_demo_volume.py` from the repository
 root, then gzip the resulting binary for the browser. The source path, fitted

@@ -140,7 +140,9 @@ def boundary_for_display(boundaries, regions):
     normalized = np.clip((boundaries - low) / max(high - low, 1e-6), 0.0, 1.0)
     gradient = np.sqrt(sum(component**2 for component in np.gradient(regions)))
     contrast = np.clip((gradient - 0.015) / (0.15 - 0.015), 0.0, 1.0) ** 0.65
-    return normalized**0.7 * contrast
+    global_response = normalized**0.7 * contrast
+    continuous_contour = np.clip(gradient / 0.12, 0.0, 1.0) ** 0.55
+    return np.maximum(global_response, 0.25 * continuous_contour)
 
 
 def psnr(reference, estimate):
