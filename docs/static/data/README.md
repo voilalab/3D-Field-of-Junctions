@@ -1,11 +1,21 @@
-# Interactive demo volumes
+# Interactive demo data
 
-These lossless WebP files contain the full `256 x 256 x 256` engine volumes from the P50 low-dose CT experiment. Each image is a `4096 x 4096` atlas whose 256 axial slices are arranged in a `16 x 16` grid. The browser reconstructs synchronized XY, YZ, and XZ views from the atlases.
+`junction-lab.bin` contains three `64 x 64 x 64` uint8 volumes in contiguous
+`[noisy input, 3D FoJ, ground truth]` channel order. Voxels within each channel
+are stored in `z, y, x` order.
 
-The data are quantized to 8-bit only for browser display using these fixed visualization windows:
+The controlled phantom combines intersecting oblique planes, corners, ribs, a
+rotated void, and square channels. It is a visualization designed to make the
+3D behavior of the representation easy to inspect; it is not a benchmark or a
+paper result. The middle channel is the output of the repository's actual 3D
+FoJ optimizer and is not hand-cleaned or post-processed.
 
-- `engine-p50-cgls.webp`: CGLS initialization, `[-1.0, 1.4]`
-- `engine-p50-foj.webp`: 3D FoJ reconstruction, `[-0.15, 0.65]`
-- `engine-ground-truth.webp`: reference volume, `[0.0, 0.8]`
+- Noise model: Poisson, 5 expected photons per voxel (P5)
+- Input PSNR: 15.60 dB
+- 3D FoJ PSNR: 20.29 dB (+4.69 dB)
+- 3D FoJ settings: patch radius 8, stride 4, 5 wedge values, 6 initialization
+  iterations, and 30 refinement iterations
 
-Reported paper metrics are computed from the original floating-point volumes, not these display atlases.
+Regenerate the asset with `scripts/generate_demo_volume.py` from the repository
+root. The exact random seed and phantom construction are recorded in that
+script.

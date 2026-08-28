@@ -133,9 +133,9 @@
         <div class="container-wide">
           <div class="section-heading reveal">
             <p class="section-kicker">Interactive demo</p>
-            <h2>One volume. Three views. Every voxel linked.</h2>
+            <h2>Built for junctions. Explored in 3D.</h2>
             <p>
-              Explore the actual 256³ engine CT experiment from the paper under P50 shot noise. Every panel shows the same 3D coordinate across axial, sagittal, and coronal planes—move in any view and the other eight update with it.
+              A controlled volume of intersecting planes, oblique ribs, corners, and square channels makes the structural prior easy to see. Every panel shares one 3D coordinate—move in any view and the other eight update with it.
             </p>
           </div>
 
@@ -144,35 +144,35 @@
               <div class="demo-experiment-title">
                 <span class="demo-live-mark" aria-hidden="true"></span>
                 <div>
-                  <span class="demo-micro-label">Paper experiment · low-dose CT</span>
-                  <strong>Engine · P50</strong>
+                  <span class="demo-micro-label">Controlled demonstration · direct denoising</span>
+                  <strong>Junction Lab · P5</strong>
                 </div>
               </div>
               <div class="demo-experiment-facts" aria-label="Experiment details">
-                <span><strong>256³</strong> voxels</span>
-                <span><strong>20</strong> projection views</span>
-                <span><strong>50</strong> photons / pixel</span>
+                <span><strong>64³</strong> voxels</span>
+                <span><strong>5</strong> photons / voxel</span>
+                <span><strong>0</strong> training volumes</span>
               </div>
             </div>
 
             <div class="demo-coordinate-bar">
               <div class="demo-coordinate-readout" aria-live="polite">
                 <span class="demo-micro-label">Linked voxel</span>
-                <strong>(<span data-demo-x>128</span>, <span data-demo-y>128</span>, <span data-demo-z>96</span>)</strong>
+                <strong>(<span data-demo-x>32</span>, <span data-demo-y>32</span>, <span data-demo-z>32</span>)</strong>
               </div>
 
               <div class="demo-axis-sliders">
                 <label>
-                  <span>x <output data-demo-axis-output="x">128</output></span>
-                  <input type="range" min="0" max="255" value="128" step="1" data-demo-axis-slider="x" aria-label="X coordinate">
+                  <span>x <output data-demo-axis-output="x">32</output></span>
+                  <input type="range" min="0" max="63" value="32" step="1" data-demo-axis-slider="x" aria-label="X coordinate">
                 </label>
                 <label>
-                  <span>y <output data-demo-axis-output="y">128</output></span>
-                  <input type="range" min="0" max="255" value="128" step="1" data-demo-axis-slider="y" aria-label="Y coordinate">
+                  <span>y <output data-demo-axis-output="y">32</output></span>
+                  <input type="range" min="0" max="63" value="32" step="1" data-demo-axis-slider="y" aria-label="Y coordinate">
                 </label>
                 <label>
-                  <span>z <output data-demo-axis-output="z">96</output></span>
-                  <input type="range" min="0" max="255" value="96" step="1" data-demo-axis-slider="z" aria-label="Z coordinate">
+                  <span>z <output data-demo-axis-output="z">32</output></span>
+                  <input type="range" min="0" max="63" value="32" step="1" data-demo-axis-slider="z" aria-label="Z coordinate">
                 </label>
               </div>
 
@@ -183,7 +183,7 @@
 
             <div class="demo-matrix-wrap">
               <div class="demo-loading" data-demo-status role="status" aria-live="polite">
-                Loading the 256³ experiment volume…
+                Loading the 3D junction volume…
               </div>
 
               <div class="demo-matrix" data-demo-matrix>
@@ -193,77 +193,77 @@
                 </div>
                 <div class="demo-method-head">
                   <div>
-                    <span class="demo-micro-label">Input</span>
-                    <strong>CGLS</strong>
+                    <span class="demo-micro-label">Observation</span>
+                    <strong>P5 noisy</strong>
                   </div>
-                  <small>20-view noisy reconstruction</small>
+                  <small>15.60 dB · Poisson</small>
                 </div>
                 <div class="demo-method-head demo-method-head-ours">
                   <div>
                     <span class="demo-micro-label">Ours</span>
                     <strong>3D FoJ</strong>
                   </div>
-                  <small>12.49 dB · paper result</small>
+                  <small>20.29 dB · +4.69</small>
                 </div>
                 <div class="demo-method-head">
                   <div>
                     <span class="demo-micro-label">Reference</span>
                     <strong>Ground truth</strong>
                   </div>
-                  <small>Full-resolution volume</small>
+                  <small>Piecewise-planar target</small>
                 </div>
 
                 <div class="demo-plane-label">
                   <strong>XY</strong>
                   <span>axial</span>
-                  <output data-demo-plane-output="xy">z = 96</output>
+                  <output data-demo-plane-output="xy">z = 32</output>
                 </div>
                 <figure class="demo-view">
-                  <canvas data-demo-view="xy" data-demo-method="cgls" width="256" height="256" tabindex="0" aria-label="CGLS axial view"></canvas>
-                  <figcaption>CGLS · XY</figcaption>
+                  <canvas data-demo-view="xy" data-demo-method="input" width="64" height="64" tabindex="0" aria-label="Noisy input axial view"></canvas>
+                  <figcaption>Noisy input · XY</figcaption>
                 </figure>
                 <figure class="demo-view demo-view-ours">
-                  <canvas data-demo-view="xy" data-demo-method="foj" width="256" height="256" tabindex="0" aria-label="3D FoJ axial view"></canvas>
+                  <canvas data-demo-view="xy" data-demo-method="foj" width="64" height="64" tabindex="0" aria-label="3D FoJ axial view"></canvas>
                   <figcaption>3D FoJ · XY</figcaption>
                 </figure>
                 <figure class="demo-view">
-                  <canvas data-demo-view="xy" data-demo-method="gt" width="256" height="256" tabindex="0" aria-label="Ground-truth axial view"></canvas>
+                  <canvas data-demo-view="xy" data-demo-method="gt" width="64" height="64" tabindex="0" aria-label="Ground-truth axial view"></canvas>
                   <figcaption>Ground truth · XY</figcaption>
                 </figure>
 
                 <div class="demo-plane-label">
                   <strong>YZ</strong>
                   <span>sagittal</span>
-                  <output data-demo-plane-output="yz">x = 128</output>
+                  <output data-demo-plane-output="yz">x = 32</output>
                 </div>
                 <figure class="demo-view">
-                  <canvas data-demo-view="yz" data-demo-method="cgls" width="256" height="256" tabindex="0" aria-label="CGLS sagittal view"></canvas>
-                  <figcaption>CGLS · YZ</figcaption>
+                  <canvas data-demo-view="yz" data-demo-method="input" width="64" height="64" tabindex="0" aria-label="Noisy input sagittal view"></canvas>
+                  <figcaption>Noisy input · YZ</figcaption>
                 </figure>
                 <figure class="demo-view demo-view-ours">
-                  <canvas data-demo-view="yz" data-demo-method="foj" width="256" height="256" tabindex="0" aria-label="3D FoJ sagittal view"></canvas>
+                  <canvas data-demo-view="yz" data-demo-method="foj" width="64" height="64" tabindex="0" aria-label="3D FoJ sagittal view"></canvas>
                   <figcaption>3D FoJ · YZ</figcaption>
                 </figure>
                 <figure class="demo-view">
-                  <canvas data-demo-view="yz" data-demo-method="gt" width="256" height="256" tabindex="0" aria-label="Ground-truth sagittal view"></canvas>
+                  <canvas data-demo-view="yz" data-demo-method="gt" width="64" height="64" tabindex="0" aria-label="Ground-truth sagittal view"></canvas>
                   <figcaption>Ground truth · YZ</figcaption>
                 </figure>
 
                 <div class="demo-plane-label">
                   <strong>XZ</strong>
                   <span>coronal</span>
-                  <output data-demo-plane-output="xz">y = 128</output>
+                  <output data-demo-plane-output="xz">y = 32</output>
                 </div>
                 <figure class="demo-view">
-                  <canvas data-demo-view="xz" data-demo-method="cgls" width="256" height="256" tabindex="0" aria-label="CGLS coronal view"></canvas>
-                  <figcaption>CGLS · XZ</figcaption>
+                  <canvas data-demo-view="xz" data-demo-method="input" width="64" height="64" tabindex="0" aria-label="Noisy input coronal view"></canvas>
+                  <figcaption>Noisy input · XZ</figcaption>
                 </figure>
                 <figure class="demo-view demo-view-ours">
-                  <canvas data-demo-view="xz" data-demo-method="foj" width="256" height="256" tabindex="0" aria-label="3D FoJ coronal view"></canvas>
+                  <canvas data-demo-view="xz" data-demo-method="foj" width="64" height="64" tabindex="0" aria-label="3D FoJ coronal view"></canvas>
                   <figcaption>3D FoJ · XZ</figcaption>
                 </figure>
                 <figure class="demo-view">
-                  <canvas data-demo-view="xz" data-demo-method="gt" width="256" height="256" tabindex="0" aria-label="Ground-truth coronal view"></canvas>
+                  <canvas data-demo-view="xz" data-demo-method="gt" width="64" height="64" tabindex="0" aria-label="Ground-truth coronal view"></canvas>
                   <figcaption>Ground truth · XZ</figcaption>
                 </figure>
               </div>
@@ -271,8 +271,8 @@
 
             <div class="demo-footer">
               <div>
-                <strong>Actual ECCV experiment output.</strong>
-                <p>CGLS initialization, 3D FoJ reconstruction, and ground truth are the full engine volumes used for the P50 low-dose CT evaluation—not synthetic browser examples.</p>
+                <strong>Actual 3D FoJ output.</strong>
+                <p>This controlled phantom is intentionally built from structures the model represents well. The middle column is generated by this repository’s optimizer—not hand-cleaned or post-processed.</p>
               </div>
               <div class="demo-footer-legend" aria-label="Crosshair legend">
                 <span><i class="demo-line-x" aria-hidden="true"></i>x</span>

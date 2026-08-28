@@ -37,19 +37,18 @@ tabs.forEach((tab, index) => {
 const demoRoot = document.querySelector("[data-foj-demo]");
 
 if (demoRoot) {
-  const VOLUME_SIZE = 256;
-  const ATLAS_SIZE = 4096;
-  const TILES_PER_ROW = 16;
+  const VOLUME_SIZE = 64;
+  const CHANNEL_SIZE = VOLUME_SIZE ** 3;
   const axisColors = {
     x: "#e07a72",
     y: "#73b487",
     z: "#719ed5"
   };
-  const sources = [
-    { method: "cgls", label: "CGLS", file: "static/data/engine-p50-cgls.webp" },
-    { method: "foj", label: "3D FoJ", file: "static/data/engine-p50-foj.webp" },
-    { method: "gt", label: "ground truth", file: "static/data/engine-ground-truth.webp" }
-  ];
+  const methodLabels = {
+    input: "P5 noisy input",
+    foj: "3D FoJ",
+    gt: "ground truth"
+  };
 
   const views = Array.from(demoRoot.querySelectorAll("[data-demo-view]"));
   const status = demoRoot.querySelector("[data-demo-status]");
@@ -69,8 +68,8 @@ if (demoRoot) {
     Array.from(demoRoot.querySelectorAll("[data-demo-plane-output]")).map((output) => [output.dataset.demoPlaneOutput, output])
   );
   const state = {
-    point: { x: 128, y: 128, z: 96 },
-    atlases: {},
+    point: { x: 32, y: 32, z: 32 },
+    volumes: {},
     renderQueued: false
   };
 
@@ -78,14 +77,12 @@ if (demoRoot) {
     return Math.max(0, Math.min(VOLUME_SIZE - 1, Math.round(value)));
   }
 
-  function atlasIndex(x, y, z) {
-    const atlasRow = Math.floor(z / TILES_PER_ROW) * VOLUME_SIZE + y;
-    const atlasColumn = (z % TILES_PER_ROW) * VOLUME_SIZE + x;
-    return atlasRow * ATLAS_SIZE + atlasColumn;
+  function volumeIndex(x, y, z) {
+    return z * VOLUME_SIZE * VOLUME_SIZE + y * VOLUME_SIZE + x;
   }
 
-  function sample(atlas, x, y, z) {
-    return atlas[atlasIndex(x, y, z)];
+  function sample(volume, x, y, z) {
+    return volume[volumeIndex(x, y, z)];
   }
 
   function viewCoordinates(plane, u, v) {
@@ -136,8 +133,8 @@ if (demoRoot) {
   }
 
   function drawView(canvas) {
-    const atlas = state.atlases[canvas.dataset.demoMethod];
-    if (!atlas) return;
+    const volume = state.volumes[canvas.dataset.demoMethod];
+    if (!volume) return;
 
     const plane = canvas.dataset.demoView;
     const context = canvas.getContext("2d");
@@ -147,7 +144,7 @@ if (demoRoot) {
     for (let v = 0; v < VOLUME_SIZE; v += 1) {
       for (let u = 0; u < VOLUME_SIZE; u += 1) {
         const voxel = viewCoordinates(plane, u, v);
-        const value = sample(atlas, voxel.x, voxel.y, voxel.z);
+        const value = sample(volume, voxel.x, voxel.y, voxel.z);
         const pixel = (v * VOLUME_SIZE + u) * 4;
         image.data[pixel] = value;
         image.data[pixel + 1] = value;
@@ -159,7 +156,7 @@ if (demoRoot) {
     context.putImageData(image, 0, 0);
     drawCrosshair(context, plane);
 
-    const method = sources.find((source) => source.method === canvas.dataset.demoMethod)?.label || canvas.dataset.demoMethod;
+    const method = methodLabels[canvas.dataset.demoMethod] || canvas.dataset.demoMethod;
     const fixedAxis = fixedAxisForPlane(plane);
     canvas.setAttribute(
       "aria-label",
@@ -201,7 +198,7 @@ if (demoRoot) {
   }
 
   function updatePointFromPointer(canvas, event) {
-    if (!state.atlases[canvas.dataset.demoMethod]) return;
+    if (!state.volumes[canvas.dataset.demoMethod]) return;
     const bounds = canvas.getBoundingClientRect();
     const u = clamp(((event.clientX - bounds.left) / bounds.width) * VOLUME_SIZE);
     const v = clamp(((event.clientY - bounds.top) / bounds.height) * VOLUME_SIZE);
@@ -230,32 +227,17 @@ if (demoRoot) {
     });
   }
 
-  async function loadAtlas(source, index) {
-    status.textContent = `Loading ${source.label} volume · ${index + 1} / ${sources.length}…`;
-    const image = new Image();
-    image.decoding = "async";
-    image.src = source.file;
-    await new Promise((resolve, reject) => {
-      image.addEventListener("load", resolve, { once: true });
-      image.addEventListener("error", () => reject(new Error(`Could not load ${source.file}`)), { once: true });
-    });
-
-    const atlasCanvas = document.createElement("canvas");
-    atlasCanvas.width = ATLAS_SIZE;
-    atlasCanvas.height = ATLAS_SIZE;
-    const atlasContext = atlasCanvas.getContext("2d", { willReadFrequently: true });
-    atlasContext.drawImage(image, 0, 0);
-    const rgba = atlasContext.getImageData(0, 0, ATLAS_SIZE, ATLAS_SIZE).data;
-    const grayscale = new Uint8Array(ATLAS_SIZE * ATLAS_SIZE);
-
-    for (let pixel = 0; pixel < grayscale.length; pixel += 1) {
-      grayscale[pixel] = rgba[pixel * 4];
-    }
-
-    atlasCanvas.width = 1;
-    atlasCanvas.height = 1;
-    state.atlases[source.method] = grayscale;
-    scheduleRender();
+  async function loadVolume() {
+    status.textContent = "Loading noisy input, 3D FoJ, and clean reference…";
+    const response = await fetch("static/data/junction-lab.bin");
+    if (!response.ok) throw new Error("Could not load the junction demo volume");
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.length !== CHANNEL_SIZE * 3) throw new Error("Unexpected junction demo volume size");
+    state.volumes = {
+      input: bytes.subarray(0, CHANNEL_SIZE),
+      foj: bytes.subarray(CHANNEL_SIZE, CHANNEL_SIZE * 2),
+      gt: bytes.subarray(CHANNEL_SIZE * 2)
+    };
   }
 
   Object.entries(sliders).forEach(([axis, slider]) => {
@@ -296,16 +278,14 @@ if (demoRoot) {
 
   async function initializeDemo() {
     try {
-      for (let index = 0; index < sources.length; index += 1) {
-        await loadAtlas(sources[index], index);
-      }
+      await loadVolume();
       status.textContent = "";
       demoRoot.setAttribute("aria-busy", "false");
       matrix.removeAttribute("aria-hidden");
       render();
     } catch (error) {
       console.error(error);
-      status.textContent = "The experiment volume could not be loaded. Please refresh the page.";
+      status.textContent = "The demonstration volume could not be loaded. Please refresh the page.";
       demoRoot.setAttribute("aria-busy", "false");
     }
   }
