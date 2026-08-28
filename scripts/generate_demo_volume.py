@@ -24,6 +24,7 @@ PATCH_STRIDE = 2
 PATCH_CHUNK = 26
 ROI_START = 22
 ROI_SIZE = 212
+REGION_COUNT = 5
 
 
 def make_phantom(size=VOLUME_SIZE):
@@ -39,7 +40,14 @@ def make_phantom(size=VOLUME_SIZE):
         & (-x + z < 1.08)
         & (y - z < 1.06)
     )
-    clean[body] = 0.88
+    plane_1 = x + 0.36 * y - 0.20 * z + 0.04
+    plane_2 = y - 0.30 * z + 0.12 * x - 0.06
+    plane_3 = z + 0.26 * x - 0.18 * y + 0.02
+
+    clean[body] = 0.18
+    clean[body & (plane_1 >= 0)] = 0.42
+    clean[body & (plane_1 >= 0) & (plane_2 >= 0)] = 0.68
+    clean[body & (plane_1 >= 0) & (plane_2 >= 0) & (plane_3 >= 0)] = 0.90
 
     # A rotated cuboid void exposes planar corners in all three orthogonal views.
     void = (
@@ -53,7 +61,15 @@ def make_phantom(size=VOLUME_SIZE):
     channel_x = body & (np.abs(y + 0.43) < 0.055) & (np.abs(z - 0.27) < 0.055)
     channel_y = body & (np.abs(x - 0.46) < 0.055) & (np.abs(z + 0.29) < 0.055)
     channel_z = body & (np.abs(x + 0.42) < 0.055) & (np.abs(y - 0.40) < 0.055)
-    clean[channel_x | channel_y | channel_z] = 0.025
+    diagonal_channel = (
+        body
+        & (np.abs(y + 0.28 * x - 0.22 * z + 0.04) < 0.045)
+        & (np.abs(z - 0.36 * x + 0.15 * y - 0.06) < 0.045)
+    )
+    octahedral_void = body & (
+        np.abs(x - 0.30) + 0.90 * np.abs(y + 0.25) + 1.10 * np.abs(z - 0.04) < 0.19
+    )
+    clean[channel_x | channel_y | channel_z | diagonal_channel | octahedral_void] = 0.025
     return clean
 
 
@@ -140,23 +156,34 @@ def optimize(noisy):
     dense_roi = accumulated / accumulated_weight
 
     # The optimizer works with smooth indicators, while the underlying FoJ
-    # representation is piecewise constant. Recover its two region levels with
-    # an unsupervised 1D clustering step, then render the estimated field with
-    # hard region membership instead of displaying a blurred patch average.
-    low, high = np.percentile(dense_roi, [10, 90])
+    # representation is piecewise constant. Recover the material levels with
+    # unsupervised 1D clustering, then render the estimated field with hard
+    # region membership instead of displaying a blurred patch average.
+    histogram = np.bincount(to_uint8(dense_roi).ravel(), minlength=256).astype(np.float64)
+    values = np.linspace(0.0, 1.0, 256, dtype=np.float64)
+    centers = np.linspace(*np.percentile(dense_roi, [2, 98]), REGION_COUNT)
     for _ in range(50):
-        high_region = np.abs(dense_roi - high) < np.abs(dense_roi - low)
-        next_low = float(dense_roi[~high_region].mean())
-        next_high = float(dense_roi[high_region].mean())
-        if max(abs(next_low - low), abs(next_high - high)) < 1e-7:
-            low, high = next_low, next_high
+        histogram_labels = np.argmin(np.abs(values[:, None] - centers[None, :]), axis=1)
+        next_centers = centers.copy()
+        for region in range(REGION_COUNT):
+            region_weights = histogram[histogram_labels == region]
+            if region_weights.sum() > 0:
+                next_centers[region] = np.average(
+                    values[histogram_labels == region],
+                    weights=region_weights,
+                )
+        if np.max(np.abs(next_centers - centers)) < 1e-7:
+            centers = next_centers
             break
-        low, high = next_low, next_high
-    threshold = 0.5 * (low + high)
-    hard_region = dense_roi >= threshold
-    low = float(roi[~hard_region].mean())
-    high = float(roi[hard_region].mean())
-    hard_roi = np.where(hard_region, high, low).astype(np.float32)
+        centers = next_centers
+    centers.sort()
+    thresholds = 0.5 * (centers[:-1] + centers[1:])
+    hard_labels = np.digitize(dense_roi, thresholds)
+    material_levels = np.array(
+        [float(roi[hard_labels == region].mean()) for region in range(REGION_COUNT)],
+        dtype=np.float32,
+    )
+    hard_roi = material_levels[hard_labels]
 
     border = 16
     background_samples = np.concatenate(
