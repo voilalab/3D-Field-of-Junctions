@@ -38,6 +38,7 @@ const demoRoot = document.querySelector("[data-foj-demo]");
 
 if (demoRoot) {
   const VOLUME_SIZE = 64;
+  const DISPLAY_SIZE = 512;
   const CHANNEL_SIZE = VOLUME_SIZE ** 3;
   const axisColors = {
     x: "#e07a72",
@@ -105,29 +106,30 @@ if (demoRoot) {
 
   function drawCrosshair(context, plane) {
     const axes = crosshairForPlane(plane);
-    const horizontalPosition = state.point[axes.horizontal] + 0.5;
-    const verticalPosition = state.point[axes.vertical] + 0.5;
+    const displayScale = DISPLAY_SIZE / VOLUME_SIZE;
+    const horizontalPosition = (state.point[axes.horizontal] + 0.5) * displayScale;
+    const verticalPosition = (state.point[axes.vertical] + 0.5) * displayScale;
 
     context.save();
-    context.lineWidth = 1.25;
+    context.lineWidth = 2;
     context.shadowColor = "rgba(0, 0, 0, 0.75)";
-    context.shadowBlur = 2;
+    context.shadowBlur = 3;
 
     context.strokeStyle = axisColors[axes.horizontal];
     context.beginPath();
     context.moveTo(horizontalPosition, 0);
-    context.lineTo(horizontalPosition, VOLUME_SIZE);
+    context.lineTo(horizontalPosition, DISPLAY_SIZE);
     context.stroke();
 
     context.strokeStyle = axisColors[axes.vertical];
     context.beginPath();
     context.moveTo(0, verticalPosition);
-    context.lineTo(VOLUME_SIZE, verticalPosition);
+    context.lineTo(DISPLAY_SIZE, verticalPosition);
     context.stroke();
 
     context.fillStyle = "#ffffff";
     context.beginPath();
-    context.arc(horizontalPosition, verticalPosition, 2.3, 0, Math.PI * 2);
+    context.arc(horizontalPosition, verticalPosition, 4, 0, Math.PI * 2);
     context.fill();
     context.restore();
   }
@@ -138,7 +140,15 @@ if (demoRoot) {
 
     const plane = canvas.dataset.demoView;
     const context = canvas.getContext("2d");
-    const image = canvas._sliceImage || context.createImageData(VOLUME_SIZE, VOLUME_SIZE);
+    const sliceCanvas = canvas._sliceCanvas || document.createElement("canvas");
+    if (!canvas._sliceCanvas) {
+      sliceCanvas.width = VOLUME_SIZE;
+      sliceCanvas.height = VOLUME_SIZE;
+      canvas._sliceCanvas = sliceCanvas;
+      canvas._sliceContext = sliceCanvas.getContext("2d");
+    }
+    const sliceContext = canvas._sliceContext;
+    const image = canvas._sliceImage || sliceContext.createImageData(VOLUME_SIZE, VOLUME_SIZE);
     canvas._sliceImage = image;
 
     for (let v = 0; v < VOLUME_SIZE; v += 1) {
@@ -153,7 +163,11 @@ if (demoRoot) {
       }
     }
 
-    context.putImageData(image, 0, 0);
+    sliceContext.putImageData(image, 0, 0);
+    context.clearRect(0, 0, DISPLAY_SIZE, DISPLAY_SIZE);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(sliceCanvas, 0, 0, DISPLAY_SIZE, DISPLAY_SIZE);
     drawCrosshair(context, plane);
 
     const method = methodLabels[canvas.dataset.demoMethod] || canvas.dataset.demoMethod;

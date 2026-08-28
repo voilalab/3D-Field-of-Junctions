@@ -1034,6 +1034,7 @@ kbd {
   aspect-ratio: 1;
   background: #050505;
   cursor: crosshair;
+  image-rendering: auto;
   touch-action: none;
 }
 
