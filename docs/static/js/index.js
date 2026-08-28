@@ -37,7 +37,7 @@ tabs.forEach((tab, index) => {
 const demoRoot = document.querySelector("[data-foj-demo]");
 
 if (demoRoot) {
-  const VOLUME_SIZE = 64;
+  const VOLUME_SIZE = 256;
   const DISPLAY_SIZE = 512;
   const CHANNEL_SIZE = VOLUME_SIZE ** 3;
   const axisColors = {
@@ -46,7 +46,7 @@ if (demoRoot) {
     z: "#719ed5"
   };
   const methodLabels = {
-    input: "P5 noisy input",
+    input: "P20 noisy input",
     foj: "3D FoJ",
     gt: "ground truth"
   };
@@ -69,7 +69,7 @@ if (demoRoot) {
     Array.from(demoRoot.querySelectorAll("[data-demo-plane-output]")).map((output) => [output.dataset.demoPlaneOutput, output])
   );
   const state = {
-    point: { x: 32, y: 32, z: 32 },
+    point: { x: 128, y: 128, z: 128 },
     volumes: {},
     renderQueued: false
   };
@@ -243,9 +243,13 @@ if (demoRoot) {
 
   async function loadVolume() {
     status.textContent = "Loading noisy input, 3D FoJ, and clean reference…";
-    const response = await fetch("static/data/junction-lab.bin");
+    const response = await fetch("static/data/junction-lab-256.bin.gz");
     if (!response.ok) throw new Error("Could not load the junction demo volume");
-    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (!("DecompressionStream" in window) || !response.body) {
+      throw new Error("This browser cannot decode the compressed junction demo volume");
+    }
+    const decompressed = response.body.pipeThrough(new DecompressionStream("gzip"));
+    const bytes = new Uint8Array(await new Response(decompressed).arrayBuffer());
     if (bytes.length !== CHANNEL_SIZE * 3) throw new Error("Unexpected junction demo volume size");
     state.volumes = {
       input: bytes.subarray(0, CHANNEL_SIZE),

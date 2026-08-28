@@ -3,6 +3,7 @@
 from pathlib import Path
 from types import SimpleNamespace
 import argparse
+import gc
 import sys
 import time
 
@@ -16,8 +17,10 @@ sys.path.insert(0, str(REPO_ROOT))
 import field_of_junctions3d as foj_module  # noqa: E402
 
 
-VOLUME_SIZE = 64
-PHOTON_COUNT = 5
+VOLUME_SIZE = 256
+PHOTON_COUNT = 20
+BLOCK_SIZE = 88
+BLOCK_OVERLAP = 4
 
 
 def make_phantom(size=VOLUME_SIZE):
@@ -70,11 +73,11 @@ def add_poisson_noise(clean, seed=3047):
     return np.clip(noisy, 0.0, 1.0)
 
 
-def optimize(noisy):
+def optimize_block(noisy):
     foj_module.dev = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     options = SimpleNamespace(
         R=8,
-        stride=4,
+        stride=8,
         eta=0.02,
         delta=0.07,
         lr_angles=0.005,
@@ -82,9 +85,9 @@ def optimize(noisy):
         lambda_boundary_final=0.1,
         lambda_color_final=0.001,
         nvals=5,
-        num_initialization_iters=6,
-        num_refinement_iters=30,
-        greedy_step_every_iters=12,
+        num_initialization_iters=1,
+        num_refinement_iters=5,
+        greedy_step_every_iters=100,
         parallel_mode=True,
     )
     model = foj_module.FieldOfJunctions3D(noisy[..., None], options)
@@ -94,7 +97,96 @@ def optimize(noisy):
     parameters = torch.cat([model.angles, model.x0y0z0], dim=1)
     _, _, patches = model.get_dists_and_patches_3d(parameters)
     smoothed = model.local2global_3d(patches)[0, 0].detach().cpu().numpy()
-    return np.clip(smoothed, 0.0, 1.0)
+    smoothed = np.clip(smoothed, 0.0, 1.0)
+    del patches, parameters, model
+    gc.collect()
+    if torch.backends.mps.is_available():
+        torch.mps.empty_cache()
+    return smoothed
+
+
+def block_positions(size=VOLUME_SIZE):
+    step = BLOCK_SIZE - BLOCK_OVERLAP
+    positions = list(range(0, size - BLOCK_SIZE + 1, step))
+    final_position = size - BLOCK_SIZE
+    if positions[-1] != final_position:
+        positions.append(final_position)
+    return positions
+
+
+def block_weight(position, size=VOLUME_SIZE):
+    weight = np.ones(BLOCK_SIZE, dtype=np.float32)
+    ramp = np.linspace(0.0, 1.0, BLOCK_OVERLAP + 2, dtype=np.float32)[1:-1]
+    if position > 0:
+        weight[:BLOCK_OVERLAP] = ramp
+    if position + BLOCK_SIZE < size:
+        weight[-BLOCK_OVERLAP:] = ramp[::-1]
+    return weight
+
+
+def optimize(noisy):
+    positions = block_positions(noisy.shape[0])
+    total_blocks = len(positions) ** 3
+    accumulated = np.zeros_like(noisy, dtype=np.float32)
+    accumulated_weight = np.zeros_like(noisy, dtype=np.float32)
+    block_number = 0
+
+    for z0 in positions:
+        wz = block_weight(z0)[:, None, None]
+        for y0 in positions:
+            wy = block_weight(y0)[None, :, None]
+            for x0 in positions:
+                wx = block_weight(x0)[None, None, :]
+                block_number += 1
+                print(
+                    f"block {block_number:02d}/{total_blocks}: "
+                    f"z={z0}:{z0 + BLOCK_SIZE}, "
+                    f"y={y0}:{y0 + BLOCK_SIZE}, "
+                    f"x={x0}:{x0 + BLOCK_SIZE}",
+                    flush=True,
+                )
+                block = noisy[
+                    z0:z0 + BLOCK_SIZE,
+                    y0:y0 + BLOCK_SIZE,
+                    x0:x0 + BLOCK_SIZE,
+                ]
+                smoothed = optimize_block(block)
+                weight = wz * wy * wx
+                accumulated[
+                    z0:z0 + BLOCK_SIZE,
+                    y0:y0 + BLOCK_SIZE,
+                    x0:x0 + BLOCK_SIZE,
+                ] += smoothed * weight
+                accumulated_weight[
+                    z0:z0 + BLOCK_SIZE,
+                    y0:y0 + BLOCK_SIZE,
+                    x0:x0 + BLOCK_SIZE,
+                ] += weight
+
+    if np.any(accumulated_weight == 0):
+        raise RuntimeError("Block blending left uncovered voxels")
+    return np.clip(accumulated / accumulated_weight, 0.0, 1.0)
+
+
+def antialias_patch_grid(volume):
+    """Apply a one-voxel separable binomial filter to suppress tile texture."""
+    smoothed = volume
+    for axis in range(3):
+        padding = [(0, 0)] * 3
+        padding[axis] = (1, 1)
+        padded = np.pad(smoothed, padding, mode="edge")
+        left = [slice(None)] * 3
+        center = [slice(None)] * 3
+        right = [slice(None)] * 3
+        left[axis] = slice(0, -2)
+        center[axis] = slice(1, -1)
+        right[axis] = slice(2, None)
+        smoothed = (
+            0.25 * padded[tuple(left)]
+            + 0.50 * padded[tuple(center)]
+            + 0.25 * padded[tuple(right)]
+        )
+    return smoothed
 
 
 def psnr(reference, estimate):
@@ -111,7 +203,7 @@ def main():
     parser.add_argument(
         "--output",
         type=Path,
-        default=REPO_ROOT / "docs/static/data/junction-lab.bin",
+        default=REPO_ROOT / "docs/static/data/junction-lab-256.bin",
     )
     args = parser.parse_args()
 
@@ -119,6 +211,7 @@ def main():
     clean = make_phantom()
     noisy = add_poisson_noise(clean)
     smoothed = optimize(noisy)
+    smoothed = antialias_patch_grid(smoothed)
     payload = np.stack([to_uint8(noisy), to_uint8(smoothed), to_uint8(clean)])
     args.output.parent.mkdir(parents=True, exist_ok=True)
     payload.tofile(args.output)

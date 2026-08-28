@@ -145,13 +145,12 @@
                 <span class="demo-live-mark" aria-hidden="true"></span>
                 <div>
                   <span class="demo-micro-label">Controlled demonstration · direct denoising</span>
-                  <strong>Junction Lab · P5</strong>
+                  <strong>Junction Lab · P20</strong>
                 </div>
               </div>
               <div class="demo-experiment-facts" aria-label="Experiment details">
-                <span><strong>64³</strong> voxels</span>
-                <span><strong>512²</strong> smooth views</span>
-                <span><strong>5</strong> photons / voxel</span>
+                <span><strong>256³</strong> native voxels</span>
+                <span><strong>20</strong> photons / voxel</span>
                 <span><strong>0</strong> training volumes</span>
               </div>
             </div>
@@ -159,21 +158,21 @@
             <div class="demo-coordinate-bar">
               <div class="demo-coordinate-readout" aria-live="polite">
                 <span class="demo-micro-label">Linked voxel</span>
-                <strong>(<span data-demo-x>32</span>, <span data-demo-y>32</span>, <span data-demo-z>32</span>)</strong>
+                <strong>(<span data-demo-x>128</span>, <span data-demo-y>128</span>, <span data-demo-z>128</span>)</strong>
               </div>
 
               <div class="demo-axis-sliders">
                 <label>
-                  <span>x <output data-demo-axis-output="x">32</output></span>
-                  <input type="range" min="0" max="63" value="32" step="1" data-demo-axis-slider="x" aria-label="X coordinate">
+                  <span>x <output data-demo-axis-output="x">128</output></span>
+                  <input type="range" min="0" max="255" value="128" step="1" data-demo-axis-slider="x" aria-label="X coordinate">
                 </label>
                 <label>
-                  <span>y <output data-demo-axis-output="y">32</output></span>
-                  <input type="range" min="0" max="63" value="32" step="1" data-demo-axis-slider="y" aria-label="Y coordinate">
+                  <span>y <output data-demo-axis-output="y">128</output></span>
+                  <input type="range" min="0" max="255" value="128" step="1" data-demo-axis-slider="y" aria-label="Y coordinate">
                 </label>
                 <label>
-                  <span>z <output data-demo-axis-output="z">32</output></span>
-                  <input type="range" min="0" max="63" value="32" step="1" data-demo-axis-slider="z" aria-label="Z coordinate">
+                  <span>z <output data-demo-axis-output="z">128</output></span>
+                  <input type="range" min="0" max="255" value="128" step="1" data-demo-axis-slider="z" aria-label="Z coordinate">
                 </label>
               </div>
 
@@ -195,16 +194,16 @@
                 <div class="demo-method-head">
                   <div>
                     <span class="demo-micro-label">Observation</span>
-                    <strong>P5 noisy</strong>
+                    <strong>P20 noisy</strong>
                   </div>
-                  <small>15.60 dB · Poisson</small>
+                  <small>20.75 dB · Poisson</small>
                 </div>
                 <div class="demo-method-head demo-method-head-ours">
                   <div>
                     <span class="demo-micro-label">Ours</span>
                     <strong>3D FoJ</strong>
                   </div>
-                  <small>20.29 dB · +4.69</small>
+                  <small>24.71 dB · +3.96</small>
                 </div>
                 <div class="demo-method-head">
                   <div>
@@ -217,7 +216,7 @@
                 <div class="demo-plane-label">
                   <strong>XY</strong>
                   <span>axial</span>
-                  <output data-demo-plane-output="xy">z = 32</output>
+                  <output data-demo-plane-output="xy">z = 128</output>
                 </div>
                 <figure class="demo-view">
                   <canvas data-demo-view="xy" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noisy input axial view"></canvas>
@@ -235,7 +234,7 @@
                 <div class="demo-plane-label">
                   <strong>YZ</strong>
                   <span>sagittal</span>
-                  <output data-demo-plane-output="yz">x = 32</output>
+                  <output data-demo-plane-output="yz">x = 128</output>
                 </div>
                 <figure class="demo-view">
                   <canvas data-demo-view="yz" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noisy input sagittal view"></canvas>
@@ -253,7 +252,7 @@
                 <div class="demo-plane-label">
                   <strong>XZ</strong>
                   <span>coronal</span>
-                  <output data-demo-plane-output="xz">y = 32</output>
+                  <output data-demo-plane-output="xz">y = 128</output>
                 </div>
                 <figure class="demo-view">
                   <canvas data-demo-view="xz" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noisy input coronal view"></canvas>
@@ -272,8 +271,8 @@
 
             <div class="demo-footer">
               <div>
-                <strong>Actual 3D FoJ output.</strong>
-                <p>This controlled phantom is intentionally built from structures the model represents well. The middle column is generated by this repository’s optimizer—not hand-cleaned or post-processed.</p>
+                <strong>Native 256³ 3D FoJ reconstruction.</strong>
+                <p>This controlled phantom is generated and reconstructed directly at full resolution. The middle column uses this repository’s optimizer in overlapping 3D blocks, followed by a one-voxel antialiasing pass to suppress patch-grid texture.</p>
               </div>
               <div class="demo-footer-legend" aria-label="Crosshair legend">
                 <span><i class="demo-line-x" aria-hidden="true"></i>x</span>
