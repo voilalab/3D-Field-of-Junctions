@@ -46,9 +46,9 @@ if (demoRoot) {
     z: "#719ed5"
   };
   const methodLabels = {
-    input: "P20 noisy input",
-    foj: "3D FoJ",
-    gt: "ground truth"
+    input: "noise-free engine CT",
+    foj: "3D FoJ junction regions",
+    boundary: "3D FoJ global boundary map"
   };
 
   const views = Array.from(demoRoot.querySelectorAll("[data-demo-view]"));
@@ -165,7 +165,8 @@ if (demoRoot) {
 
     sliceContext.putImageData(image, 0, 0);
     context.clearRect(0, 0, DISPLAY_SIZE, DISPLAY_SIZE);
-    context.imageSmoothingEnabled = false;
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
     context.drawImage(sliceCanvas, 0, 0, DISPLAY_SIZE, DISPLAY_SIZE);
     drawCrosshair(context, plane);
 
@@ -241,8 +242,8 @@ if (demoRoot) {
   }
 
   async function loadVolume() {
-    status.textContent = "Loading noisy input, 3D FoJ, and clean reference…";
-    const response = await fetch("static/data/junction-lab-256.bin.gz");
+    status.textContent = "Loading the engine CT, junction regions, and global boundaries…";
+    const response = await fetch("static/data/junction-lab-256.bin.gz?v=engine-ct-20260828");
     if (!response.ok) throw new Error("Could not load the junction demo volume");
     if (!("DecompressionStream" in window) || !response.body) {
       throw new Error("This browser cannot decode the compressed junction demo volume");
@@ -253,7 +254,7 @@ if (demoRoot) {
     state.volumes = {
       input: bytes.subarray(0, CHANNEL_SIZE),
       foj: bytes.subarray(CHANNEL_SIZE, CHANNEL_SIZE * 2),
-      gt: bytes.subarray(CHANNEL_SIZE * 2)
+      boundary: bytes.subarray(CHANNEL_SIZE * 2)
     };
   }
 

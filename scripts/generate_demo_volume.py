@@ -1,4 +1,4 @@
-"""Generate the controlled 3D junction phantom used by the project-page demo."""
+"""Generate the noise-free engine CT used by the interactive 3D FoJ demo."""
 
 from pathlib import Path
 from types import SimpleNamespace
@@ -18,68 +18,28 @@ import field_of_junctions3d as foj_module  # noqa: E402
 
 
 VOLUME_SIZE = 256
-PHOTON_COUNT = 20
+ENGINE_VOLUME = (
+    REPO_ROOT
+    / "examples/image_of_engine/cone_ntrain_25_angle_360/2_engine_cone/vol_gt.npy"
+)
 PATCH_SIZE = 6
 PATCH_STRIDE = 2
 PATCH_CHUNK = 26
-ROI_START = 22
-ROI_SIZE = 212
-REGION_COUNT = 5
+
+# The clean engine is concentrated in this patch-aligned box. The browser still
+# receives the complete 256^3 CT; limiting optimization to the occupied support
+# avoids spending most of the runtime fitting junctions to empty background.
+ROI_BOUNDS = ((16, 232), (0, 250), (0, 222))  # z, y, x
 
 
-def make_phantom(size=VOLUME_SIZE):
-    coordinates = np.linspace(-1.0, 1.0, size, dtype=np.float32)
-    z, y, x = np.meshgrid(coordinates, coordinates, coordinates, indexing="ij")
-
-    clean = np.full((size, size, size), 0.025, dtype=np.float32)
-    body = (
-        (np.abs(x) < 0.74)
-        & (np.abs(y) < 0.72)
-        & (np.abs(z) < 0.70)
-        & (x + y < 1.12)
-        & (-x + z < 1.08)
-        & (y - z < 1.06)
-    )
-    plane_1 = x + 0.36 * y - 0.20 * z + 0.04
-    plane_2 = y - 0.30 * z + 0.12 * x - 0.06
-    plane_3 = z + 0.26 * x - 0.18 * y + 0.02
-
-    clean[body] = 0.18
-    clean[body & (plane_1 >= 0)] = 0.42
-    clean[body & (plane_1 >= 0) & (plane_2 >= 0)] = 0.68
-    clean[body & (plane_1 >= 0) & (plane_2 >= 0) & (plane_3 >= 0)] = 0.90
-
-    # A rotated cuboid void exposes planar corners in all three orthogonal views.
-    void = (
-        (np.abs(x + 0.18 * y) < 0.17)
-        & (np.abs(y - 0.16 * z) < 0.15)
-        & (np.abs(z + 0.12 * x) < 0.14)
-    )
-    clean[body & void] = 0.025
-
-    # Three square channels expose corners and junctions in every orthogonal view.
-    channel_x = body & (np.abs(y + 0.43) < 0.055) & (np.abs(z - 0.27) < 0.055)
-    channel_y = body & (np.abs(x - 0.46) < 0.055) & (np.abs(z + 0.29) < 0.055)
-    channel_z = body & (np.abs(x + 0.42) < 0.055) & (np.abs(y - 0.40) < 0.055)
-    diagonal_channel = (
-        body
-        & (np.abs(y + 0.28 * x - 0.22 * z + 0.04) < 0.045)
-        & (np.abs(z - 0.36 * x + 0.15 * y - 0.06) < 0.045)
-    )
-    octahedral_void = body & (
-        np.abs(x - 0.30) + 0.90 * np.abs(y + 0.25) + 1.10 * np.abs(z - 0.04) < 0.19
-    )
-    clean[channel_x | channel_y | channel_z | diagonal_channel | octahedral_void] = 0.025
-    return clean
+def load_engine_ct():
+    volume = np.load(ENGINE_VOLUME).astype(np.float32)
+    if volume.shape != (VOLUME_SIZE, VOLUME_SIZE, VOLUME_SIZE):
+        raise RuntimeError(f"Unexpected engine CT shape: {volume.shape}")
+    return np.clip(volume, 0.0, 1.0)
 
 
-def add_poisson_noise(clean, seed=3047):
-    generator = np.random.default_rng(seed)
-    noisy = generator.poisson(clean * PHOTON_COUNT).astype(np.float32) / PHOTON_COUNT
-    return np.clip(noisy, 0.0, 1.0)
-
-
-def optimize_patch_batch(noisy):
+def optimize_patch_batch(volume):
     foj_module.dev = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     options = SimpleNamespace(
         R=PATCH_SIZE,
@@ -96,109 +56,91 @@ def optimize_patch_batch(noisy):
         greedy_step_every_iters=50,
         parallel_mode=True,
     )
-    model = foj_module.FieldOfJunctions3D(noisy[..., None], options)
+    model = foj_module.FieldOfJunctions3D(volume[..., None], options)
     for iteration in range(model.num_iters):
         model.step(iteration)
 
-    # The final step already renders and folds the optimized overlapping patches.
-    # Reuse it instead of evaluating the junction field a second time.
-    smoothed = model.global_volume[0, 0].detach().cpu().numpy()
+    # The final step renders both outputs from the same fitted local junctions.
+    regions = model.global_volume[0, 0].detach().cpu().numpy()
+    boundaries = model.global_boundaries[0, 0].detach().cpu().numpy()
     coverage = model.num_patches.detach().cpu().numpy()
-    smoothed = np.clip(smoothed, 0.0, 1.0)
+    regions = np.clip(regions, 0.0, 1.0)
+    boundaries = np.clip(boundaries, 0.0, 1.0)
     del model
     gc.collect()
     if torch.backends.mps.is_available():
         torch.mps.empty_cache()
-    return smoothed, coverage
+    return regions, boundaries, coverage
 
 
-def optimize(noisy):
-    roi_end = ROI_START + ROI_SIZE
-    roi = noisy[ROI_START:roi_end, ROI_START:roi_end, ROI_START:roi_end]
-    patch_count = (ROI_SIZE - PATCH_SIZE) // PATCH_STRIDE + 1
-    if (ROI_SIZE - PATCH_SIZE) % PATCH_STRIDE:
-        raise RuntimeError("ROI size must contain an integer patch grid")
+def patch_groups(length):
+    if (length - PATCH_SIZE) % PATCH_STRIDE:
+        raise RuntimeError("ROI dimensions must contain an integer patch grid")
+    patch_count = (length - PATCH_SIZE) // PATCH_STRIDE + 1
+    return patch_count, list(range(0, patch_count, PATCH_CHUNK))
 
-    patch_groups = list(range(0, patch_count, PATCH_CHUNK))
-    total_batches = len(patch_groups) ** 3
-    accumulated = np.zeros_like(roi, dtype=np.float32)
+
+def optimize(volume):
+    roi_slices = tuple(slice(start, end) for start, end in ROI_BOUNDS)
+    roi = volume[roi_slices]
+    axis_grids = [patch_groups(length) for length in roi.shape]
+    total_batches = int(np.prod([len(groups) for _, groups in axis_grids]))
+
+    accumulated_regions = np.zeros_like(roi, dtype=np.float32)
+    accumulated_boundaries = np.zeros_like(roi, dtype=np.float32)
     accumulated_weight = np.zeros_like(roi, dtype=np.float32)
     batch_number = 0
 
     # Partition the dense stride-2 patch grid into memory-safe batches. Their
-    # voxel extents overlap by R - stride, and coverage-weighted accumulation is
-    # exactly the same averaging used by a single full-volume field.
-    for patch_z0 in patch_groups:
-        nz = min(PATCH_CHUNK, patch_count - patch_z0)
+    # voxel extents overlap by R - stride, so coverage-weighted accumulation is
+    # exactly the same averaging used by one full-volume field.
+    for patch_z0 in axis_grids[0][1]:
+        nz = min(PATCH_CHUNK, axis_grids[0][0] - patch_z0)
         z0 = patch_z0 * PATCH_STRIDE
         z1 = z0 + PATCH_SIZE + (nz - 1) * PATCH_STRIDE
-        for patch_y0 in patch_groups:
-            ny = min(PATCH_CHUNK, patch_count - patch_y0)
+        for patch_y0 in axis_grids[1][1]:
+            ny = min(PATCH_CHUNK, axis_grids[1][0] - patch_y0)
             y0 = patch_y0 * PATCH_STRIDE
             y1 = y0 + PATCH_SIZE + (ny - 1) * PATCH_STRIDE
-            for patch_x0 in patch_groups:
-                nx = min(PATCH_CHUNK, patch_count - patch_x0)
+            for patch_x0 in axis_grids[2][1]:
+                nx = min(PATCH_CHUNK, axis_grids[2][0] - patch_x0)
                 x0 = patch_x0 * PATCH_STRIDE
                 x1 = x0 + PATCH_SIZE + (nx - 1) * PATCH_STRIDE
                 batch_number += 1
                 print(
-                    f"patch batch {batch_number:02d}/{total_batches}: "
+                    f"patch batch {batch_number:03d}/{total_batches}: "
                     f"z={z0}:{z1}, y={y0}:{y1}, x={x0}:{x1}",
                     flush=True,
                 )
-                smoothed, coverage = optimize_patch_batch(roi[z0:z1, y0:y1, x0:x1])
-                accumulated[z0:z1, y0:y1, x0:x1] += smoothed * coverage
+                regions, boundaries, coverage = optimize_patch_batch(
+                    roi[z0:z1, y0:y1, x0:x1]
+                )
+                accumulated_regions[z0:z1, y0:y1, x0:x1] += regions * coverage
+                accumulated_boundaries[z0:z1, y0:y1, x0:x1] += boundaries * coverage
                 accumulated_weight[z0:z1, y0:y1, x0:x1] += coverage
 
     if np.any(accumulated_weight == 0):
         raise RuntimeError("Dense patch assembly left uncovered voxels")
 
-    dense_roi = accumulated / accumulated_weight
+    dense_regions = accumulated_regions / accumulated_weight
+    dense_boundaries = accumulated_boundaries / accumulated_weight
 
-    # The optimizer works with smooth indicators, while the underlying FoJ
-    # representation is piecewise constant. Recover the material levels with
-    # unsupervised 1D clustering, then render the estimated field with hard
-    # region membership instead of displaying a blurred patch average.
-    histogram = np.bincount(to_uint8(dense_roi).ravel(), minlength=256).astype(np.float64)
-    values = np.linspace(0.0, 1.0, 256, dtype=np.float64)
-    centers = np.linspace(*np.percentile(dense_roi, [2, 98]), REGION_COUNT)
-    for _ in range(50):
-        histogram_labels = np.argmin(np.abs(values[:, None] - centers[None, :]), axis=1)
-        next_centers = centers.copy()
-        for region in range(REGION_COUNT):
-            region_weights = histogram[histogram_labels == region]
-            if region_weights.sum() > 0:
-                next_centers[region] = np.average(
-                    values[histogram_labels == region],
-                    weights=region_weights,
-                )
-        if np.max(np.abs(next_centers - centers)) < 1e-7:
-            centers = next_centers
-            break
-        centers = next_centers
-    centers.sort()
-    thresholds = 0.5 * (centers[:-1] + centers[1:])
-    hard_labels = np.digitize(dense_roi, thresholds)
-    material_levels = np.array(
-        [float(roi[hard_labels == region].mean()) for region in range(REGION_COUNT)],
-        dtype=np.float32,
-    )
-    hard_roi = material_levels[hard_labels]
+    region_volume = volume.copy()
+    region_volume[roi_slices] = dense_regions
+    boundary_volume = np.zeros_like(volume, dtype=np.float32)
+    boundary_volume[roi_slices] = dense_boundaries
+    return np.clip(region_volume, 0.0, 1.0), boundary_volume
 
-    border = 16
-    background_samples = np.concatenate(
-        [
-            noisy[:border].ravel(),
-            noisy[-border:].ravel(),
-            noisy[:, :border].ravel(),
-            noisy[:, -border:].ravel(),
-            noisy[:, :, :border].ravel(),
-            noisy[:, :, -border:].ravel(),
-        ]
-    )
-    output = np.full_like(noisy, float(background_samples.mean()), dtype=np.float32)
-    output[ROI_START:roi_end, ROI_START:roi_end, ROI_START:roi_end] = hard_roi
-    return np.clip(output, 0.0, 1.0)
+
+def boundary_for_display(boundaries, regions):
+    occupied = boundaries[boundaries > 0]
+    if not occupied.size:
+        return boundaries
+    low, high = np.percentile(occupied, [75.0, 99.5])
+    normalized = np.clip((boundaries - low) / max(high - low, 1e-6), 0.0, 1.0)
+    gradient = np.sqrt(sum(component**2 for component in np.gradient(regions)))
+    contrast = np.clip((gradient - 0.015) / (0.15 - 0.015), 0.0, 1.0) ** 0.65
+    return normalized**0.7 * contrast
 
 
 def psnr(reference, estimate):
@@ -220,15 +162,24 @@ def main():
     args = parser.parse_args()
 
     started = time.time()
-    clean = make_phantom()
-    noisy = add_poisson_noise(clean)
-    smoothed = optimize(noisy)
-    payload = np.stack([to_uint8(noisy), to_uint8(smoothed), to_uint8(clean)])
+    clean_ct = load_engine_ct()
+    regions, boundaries = optimize(clean_ct)
+    boundary_display = boundary_for_display(boundaries, regions)
+    payload = np.stack(
+        [to_uint8(clean_ct), to_uint8(regions), to_uint8(boundary_display)]
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     payload.tofile(args.output)
 
-    print(f"input PSNR: {psnr(clean, noisy):.2f} dB")
-    print(f"3D FoJ PSNR: {psnr(clean, smoothed):.2f} dB")
+    roi_slices = tuple(slice(start, end) for start, end in ROI_BOUNDS)
+    print(
+        "region PSNR in fitted support: "
+        f"{psnr(clean_ct[roi_slices], regions[roi_slices]):.2f} dB"
+    )
+    print(
+        "boundary display range (p75-p99.5): "
+        f"{np.percentile(boundaries[boundaries > 0], [75.0, 99.5])}"
+    )
     print(f"output: {args.output} ({args.output.stat().st_size} bytes)")
     print(f"elapsed: {time.time() - started:.1f} seconds")
 

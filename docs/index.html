@@ -133,9 +133,9 @@
         <div class="container-wide">
           <div class="section-heading reveal">
             <p class="section-kicker">Interactive demo</p>
-            <h2>Built for junctions. Explored in 3D.</h2>
+            <h2>A CT volume from our experiments, read as a field of junctions.</h2>
             <p>
-              A large multi-material polyhedron combines intersecting planes, a rotated void, an octahedral cavity, and orthogonal and oblique channels. Every panel shares one 3D coordinate—move in any view and the other eight update with it.
+              Explore a noise-free engine CT from the paper experiments. The middle column shows the piecewise-constant regions fitted by 3D FoJ; the right column reveals the global boundary map assembled from the same overlapping 3D junctions. Every panel shares one voxel coordinate.
             </p>
           </div>
 
@@ -144,13 +144,13 @@
               <div class="demo-experiment-title">
                 <span class="demo-live-mark" aria-hidden="true"></span>
                 <div>
-                  <span class="demo-micro-label">Controlled demonstration · direct denoising</span>
-                  <strong>Junction Lab · P20</strong>
+                  <span class="demo-micro-label">Structural analysis · noise-free CT</span>
+                  <strong>Engine CT · 3D junction field</strong>
                 </div>
               </div>
               <div class="demo-experiment-facts" aria-label="Experiment details">
                 <span><strong>256³</strong> native voxels</span>
-                <span><strong>20</strong> photons / voxel</span>
+                <span><strong>3</strong> linked orientations</span>
                 <span><strong>0</strong> training volumes</span>
               </div>
             </div>
@@ -183,34 +183,34 @@
 
             <div class="demo-matrix-wrap">
               <div class="demo-loading" data-demo-status role="status" aria-live="polite">
-                Loading the 3D junction volume…
+                Loading the engine CT and fitted junction field…
               </div>
 
               <div class="demo-matrix" data-demo-matrix>
                 <div class="demo-matrix-corner" aria-hidden="true">
                   <span>orientation</span>
-                  <span>reconstruction</span>
+                  <span>representation</span>
                 </div>
                 <div class="demo-method-head">
                   <div>
-                    <span class="demo-micro-label">Observation</span>
-                    <strong>P20 noisy</strong>
+                    <span class="demo-micro-label">Input</span>
+                    <strong>Noise-free CT</strong>
                   </div>
-                  <small>21.91 dB · Poisson</small>
+                  <small>Engine · 256³ voxels</small>
                 </div>
                 <div class="demo-method-head demo-method-head-ours">
                   <div>
-                    <span class="demo-micro-label">Ours</span>
-                    <strong>3D FoJ</strong>
+                    <span class="demo-micro-label">Local model</span>
+                    <strong>Junction regions</strong>
                   </div>
-                  <small>30.66 dB · +8.75</small>
+                  <small>Piecewise-constant fit</small>
                 </div>
                 <div class="demo-method-head">
                   <div>
-                    <span class="demo-micro-label">Reference</span>
-                    <strong>Ground truth</strong>
+                    <span class="demo-micro-label">Global structure</span>
+                    <strong>Junction boundaries</strong>
                   </div>
-                  <small>Piecewise-planar target</small>
+                  <small>Contrast-weighted global map</small>
                 </div>
 
                 <div class="demo-plane-label">
@@ -219,16 +219,16 @@
                   <output data-demo-plane-output="xy">z = 128</output>
                 </div>
                 <figure class="demo-view">
-                  <canvas data-demo-view="xy" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noisy input axial view"></canvas>
-                  <figcaption>Noisy input · XY</figcaption>
+                  <canvas data-demo-view="xy" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noise-free engine CT axial view"></canvas>
+                  <figcaption>Noise-free CT · XY</figcaption>
                 </figure>
                 <figure class="demo-view demo-view-ours">
                   <canvas data-demo-view="xy" data-demo-method="foj" width="512" height="512" tabindex="0" aria-label="3D FoJ axial view"></canvas>
-                  <figcaption>3D FoJ · XY</figcaption>
+                  <figcaption>Junction regions · XY</figcaption>
                 </figure>
                 <figure class="demo-view">
-                  <canvas data-demo-view="xy" data-demo-method="gt" width="512" height="512" tabindex="0" aria-label="Ground-truth axial view"></canvas>
-                  <figcaption>Ground truth · XY</figcaption>
+                  <canvas data-demo-view="xy" data-demo-method="boundary" width="512" height="512" tabindex="0" aria-label="3D FoJ global boundary map axial view"></canvas>
+                  <figcaption>Junction boundaries · XY</figcaption>
                 </figure>
 
                 <div class="demo-plane-label">
@@ -237,16 +237,16 @@
                   <output data-demo-plane-output="yz">x = 128</output>
                 </div>
                 <figure class="demo-view">
-                  <canvas data-demo-view="yz" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noisy input sagittal view"></canvas>
-                  <figcaption>Noisy input · YZ</figcaption>
+                  <canvas data-demo-view="yz" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noise-free engine CT sagittal view"></canvas>
+                  <figcaption>Noise-free CT · YZ</figcaption>
                 </figure>
                 <figure class="demo-view demo-view-ours">
                   <canvas data-demo-view="yz" data-demo-method="foj" width="512" height="512" tabindex="0" aria-label="3D FoJ sagittal view"></canvas>
-                  <figcaption>3D FoJ · YZ</figcaption>
+                  <figcaption>Junction regions · YZ</figcaption>
                 </figure>
                 <figure class="demo-view">
-                  <canvas data-demo-view="yz" data-demo-method="gt" width="512" height="512" tabindex="0" aria-label="Ground-truth sagittal view"></canvas>
-                  <figcaption>Ground truth · YZ</figcaption>
+                  <canvas data-demo-view="yz" data-demo-method="boundary" width="512" height="512" tabindex="0" aria-label="3D FoJ global boundary map sagittal view"></canvas>
+                  <figcaption>Junction boundaries · YZ</figcaption>
                 </figure>
 
                 <div class="demo-plane-label">
@@ -255,24 +255,24 @@
                   <output data-demo-plane-output="xz">y = 128</output>
                 </div>
                 <figure class="demo-view">
-                  <canvas data-demo-view="xz" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noisy input coronal view"></canvas>
-                  <figcaption>Noisy input · XZ</figcaption>
+                  <canvas data-demo-view="xz" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noise-free engine CT coronal view"></canvas>
+                  <figcaption>Noise-free CT · XZ</figcaption>
                 </figure>
                 <figure class="demo-view demo-view-ours">
                   <canvas data-demo-view="xz" data-demo-method="foj" width="512" height="512" tabindex="0" aria-label="3D FoJ coronal view"></canvas>
-                  <figcaption>3D FoJ · XZ</figcaption>
+                  <figcaption>Junction regions · XZ</figcaption>
                 </figure>
                 <figure class="demo-view">
-                  <canvas data-demo-view="xz" data-demo-method="gt" width="512" height="512" tabindex="0" aria-label="Ground-truth coronal view"></canvas>
-                  <figcaption>Ground truth · XZ</figcaption>
+                  <canvas data-demo-view="xz" data-demo-method="boundary" width="512" height="512" tabindex="0" aria-label="3D FoJ global boundary map coronal view"></canvas>
+                  <figcaption>Junction boundaries · XZ</figcaption>
                 </figure>
               </div>
             </div>
 
             <div class="demo-footer">
               <div>
-                <strong>Native-resolution 3D FoJ reconstruction.</strong>
-                <p>The foreground is reconstructed directly on the 256³ voxel grid using dense overlapping 6³ patches at stride 2. The middle column hard-renders the material levels estimated from the 3D FoJ field—no smoothing filter or display blur.</p>
+                <strong>Paper CT. Actual fitted junctions.</strong>
+                <p>This is the repository's noise-free 256³ engine volume used in the CT experiments—not a browser-only target. Dense overlapping 6³ patches at stride 2 produce both the regional rendering and the contrast-weighted global boundary response shown here.</p>
               </div>
               <div class="demo-footer-legend" aria-label="Crosshair legend">
                 <span><i class="demo-line-x" aria-hidden="true"></i>x</span>
