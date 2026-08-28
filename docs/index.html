@@ -135,7 +135,7 @@
             <p class="section-kicker">Interactive demo</p>
             <h2>Built for junctions. Explored in 3D.</h2>
             <p>
-              A controlled volume of intersecting planes, oblique ribs, corners, and square channels makes the structural prior easy to see. Every panel shares one 3D coordinate—move in any view and the other eight update with it.
+              A large two-material polyhedron with planar corners, a rotated void, and square channels makes the structural prior easy to see. Every panel shares one 3D coordinate—move in any view and the other eight update with it.
             </p>
           </div>
 
@@ -196,14 +196,14 @@
                     <span class="demo-micro-label">Observation</span>
                     <strong>P20 noisy</strong>
                   </div>
-                  <small>25.93 dB · Poisson</small>
+                  <small>20.37 dB · Poisson</small>
                 </div>
                 <div class="demo-method-head demo-method-head-ours">
                   <div>
                     <span class="demo-micro-label">Ours</span>
                     <strong>3D FoJ</strong>
                   </div>
-                  <small>29.83 dB · +3.90</small>
+                  <small>29.94 dB · +9.57</small>
                 </div>
                 <div class="demo-method-head">
                   <div>
@@ -272,7 +272,7 @@
             <div class="demo-footer">
               <div>
                 <strong>Native-resolution 3D FoJ reconstruction.</strong>
-                <p>The foreground crop is reconstructed directly on the 256³ voxel grid. The middle column uses the paper’s default dense 3D FoJ field: 10³ patches at stride 2, assembled by voxel-wise overlap averaging with no display blur.</p>
+                <p>The foreground is reconstructed directly on the 256³ voxel grid using dense overlapping 6³ patches at stride 2. The middle column shows a hard rendering of the two regions estimated by 3D FoJ—no smoothing filter or display blur.</p>
               </div>
               <div class="demo-footer-legend" aria-label="Crosshair legend">
                 <span><i class="demo-line-x" aria-hidden="true"></i>x</span>

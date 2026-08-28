@@ -165,8 +165,7 @@ if (demoRoot) {
 
     sliceContext.putImageData(image, 0, 0);
     context.clearRect(0, 0, DISPLAY_SIZE, DISPLAY_SIZE);
-    context.imageSmoothingEnabled = true;
-    context.imageSmoothingQuality = "high";
+    context.imageSmoothingEnabled = false;
     context.drawImage(sliceCanvas, 0, 0, DISPLAY_SIZE, DISPLAY_SIZE);
     drawCrosshair(context, plane);
 

@@ -19,11 +19,11 @@ import field_of_junctions3d as foj_module  # noqa: E402
 
 VOLUME_SIZE = 256
 PHOTON_COUNT = 20
-PATCH_SIZE = 10
+PATCH_SIZE = 6
 PATCH_STRIDE = 2
-PATCH_CHUNK = 22
-ROI_START = 58
-ROI_SIZE = 140
+PATCH_CHUNK = 26
+ROI_START = 22
+ROI_SIZE = 212
 
 
 def make_phantom(size=VOLUME_SIZE):
@@ -32,41 +32,28 @@ def make_phantom(size=VOLUME_SIZE):
 
     clean = np.full((size, size, size), 0.025, dtype=np.float32)
     body = (
-        (np.abs(x) < 0.47)
-        & (np.abs(y) < 0.45)
-        & (np.abs(z) < 0.43)
-        & (x + y < 0.70)
-        & (-x + z < 0.68)
-        & (y - z < 0.66)
+        (np.abs(x) < 0.74)
+        & (np.abs(y) < 0.72)
+        & (np.abs(z) < 0.70)
+        & (x + y < 1.12)
+        & (-x + z < 1.08)
+        & (y - z < 1.06)
     )
-
-    plane_1 = x + 0.36 * y - 0.20 * z + 0.04
-    plane_2 = y - 0.30 * z + 0.12 * x - 0.06
-    plane_3 = z + 0.26 * x - 0.18 * y + 0.02
-
-    clean[body] = 0.14
-    clean[body & (plane_1 >= 0)] = 0.42
-    clean[body & (plane_1 >= 0) & (plane_2 >= 0)] = 0.68
-    clean[body & (plane_1 >= 0) & (plane_2 >= 0) & (plane_3 >= 0)] = 0.92
+    clean[body] = 0.88
 
     # A rotated cuboid void exposes planar corners in all three orthogonal views.
     void = (
-        (np.abs(x + 0.18 * y) < 0.115)
-        & (np.abs(y - 0.16 * z) < 0.105)
-        & (np.abs(z + 0.12 * x) < 0.100)
+        (np.abs(x + 0.18 * y) < 0.17)
+        & (np.abs(y - 0.16 * z) < 0.15)
+        & (np.abs(z + 0.12 * x) < 0.14)
     )
     clean[body & void] = 0.025
 
-    # Three square channels and two oblique ribs add fine but still planar structure.
-    channel_x = body & (np.abs(y + 0.27) < 0.047) & (np.abs(z - 0.17) < 0.047)
-    channel_y = body & (np.abs(x - 0.29) < 0.047) & (np.abs(z + 0.18) < 0.047)
-    channel_z = body & (np.abs(x + 0.27) < 0.047) & (np.abs(y - 0.25) < 0.047)
+    # Three square channels expose corners and junctions in every orthogonal view.
+    channel_x = body & (np.abs(y + 0.43) < 0.055) & (np.abs(z - 0.27) < 0.055)
+    channel_y = body & (np.abs(x - 0.46) < 0.055) & (np.abs(z + 0.29) < 0.055)
+    channel_z = body & (np.abs(x + 0.42) < 0.055) & (np.abs(y - 0.40) < 0.055)
     clean[channel_x | channel_y | channel_z] = 0.025
-
-    rib_1 = body & (np.abs(x - 0.55 * y + 0.22 * z) < 0.030) & (z < 0.30)
-    rib_2 = body & (np.abs(z + 0.48 * x - 0.18 * y) < 0.030) & (y > -0.34)
-    clean[rib_1] = 0.82
-    clean[rib_2] = 0.58
     return clean
 
 
@@ -150,7 +137,28 @@ def optimize(noisy):
     if np.any(accumulated_weight == 0):
         raise RuntimeError("Dense patch assembly left uncovered voxels")
 
-    border = 24
+    dense_roi = accumulated / accumulated_weight
+
+    # The optimizer works with smooth indicators, while the underlying FoJ
+    # representation is piecewise constant. Recover its two region levels with
+    # an unsupervised 1D clustering step, then render the estimated field with
+    # hard region membership instead of displaying a blurred patch average.
+    low, high = np.percentile(dense_roi, [10, 90])
+    for _ in range(50):
+        high_region = np.abs(dense_roi - high) < np.abs(dense_roi - low)
+        next_low = float(dense_roi[~high_region].mean())
+        next_high = float(dense_roi[high_region].mean())
+        if max(abs(next_low - low), abs(next_high - high)) < 1e-7:
+            low, high = next_low, next_high
+            break
+        low, high = next_low, next_high
+    threshold = 0.5 * (low + high)
+    hard_region = dense_roi >= threshold
+    low = float(roi[~hard_region].mean())
+    high = float(roi[hard_region].mean())
+    hard_roi = np.where(hard_region, high, low).astype(np.float32)
+
+    border = 16
     background_samples = np.concatenate(
         [
             noisy[:border].ravel(),
@@ -162,9 +170,7 @@ def optimize(noisy):
         ]
     )
     output = np.full_like(noisy, float(background_samples.mean()), dtype=np.float32)
-    output[ROI_START:roi_end, ROI_START:roi_end, ROI_START:roi_end] = (
-        accumulated / accumulated_weight
-    )
+    output[ROI_START:roi_end, ROI_START:roi_end, ROI_START:roi_end] = hard_roi
     return np.clip(output, 0.0, 1.0)
 
 
