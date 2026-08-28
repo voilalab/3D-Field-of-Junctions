@@ -1,4 +1,4 @@
-"""Generate the noise-free engine CT used by the interactive 3D FoJ demo."""
+"""Generate one noise state for the interactive engine CT 3D FoJ demo."""
 
 from pathlib import Path
 from types import SimpleNamespace
@@ -37,6 +37,12 @@ def load_engine_ct():
     if volume.shape != (VOLUME_SIZE, VOLUME_SIZE, VOLUME_SIZE):
         raise RuntimeError(f"Unexpected engine CT shape: {volume.shape}")
     return np.clip(volume, 0.0, 1.0)
+
+
+def add_poisson_noise(clean, photons, seed):
+    generator = np.random.default_rng(seed)
+    noisy = generator.poisson(clean * photons).astype(np.float32) / photons
+    return np.clip(noisy, 0.0, 1.0)
 
 
 def optimize_patch_batch(volume):
@@ -157,23 +163,48 @@ def to_uint8(array):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--photons",
+        type=int,
+        choices=(20, 50, 100),
+        help="Expected photons at unit intensity; omit for the clean state.",
+    )
+    parser.add_argument("--seed", type=int, default=3047)
+    parser.add_argument(
         "--output",
         type=Path,
-        default=REPO_ROOT / "docs/static/data/junction-lab-256.bin",
     )
     args = parser.parse_args()
 
     started = time.time()
     clean_ct = load_engine_ct()
-    regions, boundaries = optimize(clean_ct)
+    input_volume = (
+        clean_ct
+        if args.photons is None
+        else add_poisson_noise(clean_ct, args.photons, args.seed)
+    )
+    regions, boundaries = optimize(input_volume)
     boundary_display = boundary_for_display(boundaries, regions)
     payload = np.stack(
-        [to_uint8(clean_ct), to_uint8(regions), to_uint8(boundary_display)]
+        [to_uint8(input_volume), to_uint8(regions), to_uint8(boundary_display)]
     )
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    payload.tofile(args.output)
+    if args.output is None:
+        filename = (
+            "junction-lab-256.bin"
+            if args.photons is None
+            else f"engine-ct-p{args.photons}-256.bin"
+        )
+        output = REPO_ROOT / "docs/static/data" / filename
+    else:
+        output = args.output
+    output.parent.mkdir(parents=True, exist_ok=True)
+    payload.tofile(output)
 
     roi_slices = tuple(slice(start, end) for start, end in ROI_BOUNDS)
+    if args.photons is not None:
+        print(
+            "input PSNR in fitted support: "
+            f"{psnr(clean_ct[roi_slices], input_volume[roi_slices]):.2f} dB"
+        )
     print(
         "region PSNR in fitted support: "
         f"{psnr(clean_ct[roi_slices], regions[roi_slices]):.2f} dB"
@@ -182,7 +213,7 @@ def main():
         "boundary display range (p75-p99.5): "
         f"{np.percentile(boundaries[boundaries > 0], [75.0, 99.5])}"
     )
-    print(f"output: {args.output} ({args.output.stat().st_size} bytes)")
+    print(f"output: {output} ({output.stat().st_size} bytes)")
     print(f"elapsed: {time.time() - started:.1f} seconds")
 
 

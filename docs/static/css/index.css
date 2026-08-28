@@ -810,6 +810,86 @@ kbd {
   font-size: 0.72rem;
 }
 
+.demo-noise-bar {
+  display: grid;
+  grid-template-columns: auto auto minmax(220px, 1fr);
+  align-items: center;
+  border-bottom: 1px solid #373737;
+  background: #1b1b1b;
+  color: #eee;
+  padding: 13px 18px;
+  gap: 20px;
+}
+
+.demo-noise-copy {
+  min-width: 132px;
+}
+
+.demo-noise-copy .demo-micro-label {
+  margin-bottom: 0;
+  color: #858585;
+}
+
+.demo-noise-copy strong {
+  display: block;
+  font-size: 0.82rem;
+}
+
+.demo-noise-selector {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(76px, 1fr));
+  overflow: hidden;
+  border: 1px solid #494949;
+  border-radius: 7px;
+  background: #111;
+}
+
+.demo-noise-selector button {
+  display: grid;
+  min-height: 43px;
+  place-content: center;
+  border: 0;
+  background: transparent;
+  color: #aaa;
+  cursor: pointer;
+  padding: 5px 12px;
+  font-family: var(--mono);
+  text-align: center;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.demo-noise-selector button + button {
+  border-left: 1px solid #3b3b3b;
+}
+
+.demo-noise-selector button:hover {
+  background: #27231d;
+  color: #fff;
+}
+
+.demo-noise-selector button[aria-pressed="true"] {
+  background: var(--gold-dark);
+  color: #fff;
+}
+
+.demo-noise-selector strong {
+  font-size: 0.72rem;
+}
+
+.demo-noise-selector span {
+  opacity: 0.7;
+  font-size: 0.5rem;
+  text-transform: uppercase;
+}
+
+.demo-noise-bar > p {
+  max-width: 520px;
+  margin: 0;
+  color: #999;
+  font-size: 0.67rem;
+  line-height: 1.45;
+}
+
 .demo-coordinate-bar {
   display: grid;
   grid-template-columns: auto minmax(360px, 1fr) auto;
@@ -1548,6 +1628,14 @@ kbd {
 }
 
 @media (max-width: 900px) {
+  .demo-noise-bar {
+    grid-template-columns: auto minmax(360px, 1fr);
+  }
+
+  .demo-noise-bar > p {
+    grid-column: 1 / -1;
+  }
+
   .demo-coordinate-bar {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -1648,6 +1736,15 @@ kbd {
 
   .demo-experiment-facts span:first-child {
     padding-left: 0;
+  }
+
+  .demo-noise-bar {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .demo-noise-bar > p {
+    grid-column: auto;
   }
 
   .demo-matrix-wrap {
@@ -1811,8 +1908,22 @@ kbd {
 
 @media (max-width: 500px) {
   .demo-header,
+  .demo-noise-bar,
   .demo-coordinate-bar {
     padding-inline: 14px;
+  }
+
+  .demo-noise-selector {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .demo-noise-selector button:nth-child(3) {
+    border-top: 1px solid #3b3b3b;
+    border-left: 0;
+  }
+
+  .demo-noise-selector button:nth-child(4) {
+    border-top: 1px solid #3b3b3b;
   }
 
   .demo-experiment-facts {

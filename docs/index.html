@@ -32,7 +32,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
     <link rel="icon" href="static/images/voila.ico" sizes="64x64">
-    <link rel="stylesheet" href="static/css/index.css">
+    <link rel="stylesheet" href="static/css/index.css?v=poisson-sweep-20260828">
 
     <script type="application/ld+json">
       {
@@ -54,7 +54,7 @@
         "codeRepository": "https://github.com/voilalab/3D-Field-of-Junctions"
       }
     </script>
-    <script defer src="static/js/index.js?v=engine-ct-continuous-20260828"></script>
+    <script defer src="static/js/index.js?v=poisson-sweep-20260828"></script>
   </head>
 
   <body>
@@ -133,9 +133,9 @@
         <div class="container-wide">
           <div class="section-heading reveal">
             <p class="section-kicker">Interactive demo</p>
-            <h2>A CT volume from our experiments, read as a field of junctions.</h2>
+            <h2>One CT volume. Four noise levels. The same junction field.</h2>
             <p>
-              Explore a noise-free engine CT from the paper experiments. The middle column shows the piecewise-constant regions fitted by 3D FoJ; the right column reveals the global boundary map assembled from the same overlapping 3D junctions. Every panel shares one voxel coordinate.
+              Move from the clean engine volume to P100, P50, and P20 Poisson observations while keeping every 3D FoJ setting fixed. The linked XY, YZ, and XZ views show how the fitted regions and global boundaries change as measurements get noisier.
             </p>
           </div>
 
@@ -144,15 +144,29 @@
               <div class="demo-experiment-title">
                 <span class="demo-live-mark" aria-hidden="true"></span>
                 <div>
-                  <span class="demo-micro-label">Structural analysis · noise-free CT</span>
+                  <span class="demo-micro-label">Structural robustness · fixed FoJ settings</span>
                   <strong>Engine CT · 3D junction field</strong>
                 </div>
               </div>
               <div class="demo-experiment-facts" aria-label="Experiment details">
                 <span><strong>256³</strong> native voxels</span>
-                <span><strong>3</strong> linked orientations</span>
+                <span><strong>4</strong> noise states</span>
                 <span><strong>0</strong> training volumes</span>
               </div>
+            </div>
+
+            <div class="demo-noise-bar">
+              <div class="demo-noise-copy">
+                <span class="demo-micro-label">Poisson noise level</span>
+                <strong data-demo-noise-title>Clean reference</strong>
+              </div>
+              <div class="demo-noise-selector" role="group" aria-label="Poisson noise level">
+                <button type="button" data-demo-noise="clean" aria-pressed="true"><strong>Clean</strong><span>reference</span></button>
+                <button type="button" data-demo-noise="p100" aria-pressed="false"><strong>P100</strong><span>mild</span></button>
+                <button type="button" data-demo-noise="p50" aria-pressed="false"><strong>P50</strong><span>moderate</span></button>
+                <button type="button" data-demo-noise="p20" aria-pressed="false"><strong>P20</strong><span>severe</span></button>
+              </div>
+              <p data-demo-noise-description>No added noise; the experiment volume is shown as the reference state.</p>
             </div>
 
             <div class="demo-coordinate-bar">
@@ -194,16 +208,16 @@
                 <div class="demo-method-head">
                   <div>
                     <span class="demo-micro-label">Input</span>
-                    <strong>Noise-free CT</strong>
+                    <strong data-demo-input-title>Noise-free CT</strong>
                   </div>
-                  <small>Engine · 256³ voxels</small>
+                  <small data-demo-input-meta>Clean reference</small>
                 </div>
                 <div class="demo-method-head demo-method-head-ours">
                   <div>
                     <span class="demo-micro-label">Local model</span>
                     <strong>Junction regions</strong>
                   </div>
-                  <small>Piecewise-constant fit</small>
+                  <small data-demo-foj-meta>28.99 dB vs clean</small>
                 </div>
                 <div class="demo-method-head">
                   <div>
@@ -220,7 +234,7 @@
                 </div>
                 <figure class="demo-view">
                   <canvas data-demo-view="xy" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noise-free engine CT axial view"></canvas>
-                  <figcaption>Noise-free CT · XY</figcaption>
+                  <figcaption><span data-demo-input-caption>Noise-free CT</span> · XY</figcaption>
                 </figure>
                 <figure class="demo-view demo-view-ours">
                   <canvas data-demo-view="xy" data-demo-method="foj" width="512" height="512" tabindex="0" aria-label="3D FoJ axial view"></canvas>
@@ -238,7 +252,7 @@
                 </div>
                 <figure class="demo-view">
                   <canvas data-demo-view="yz" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noise-free engine CT sagittal view"></canvas>
-                  <figcaption>Noise-free CT · YZ</figcaption>
+                  <figcaption><span data-demo-input-caption>Noise-free CT</span> · YZ</figcaption>
                 </figure>
                 <figure class="demo-view demo-view-ours">
                   <canvas data-demo-view="yz" data-demo-method="foj" width="512" height="512" tabindex="0" aria-label="3D FoJ sagittal view"></canvas>
@@ -256,7 +270,7 @@
                 </div>
                 <figure class="demo-view">
                   <canvas data-demo-view="xz" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noise-free engine CT coronal view"></canvas>
-                  <figcaption>Noise-free CT · XZ</figcaption>
+                  <figcaption><span data-demo-input-caption>Noise-free CT</span> · XZ</figcaption>
                 </figure>
                 <figure class="demo-view demo-view-ours">
                   <canvas data-demo-view="xz" data-demo-method="foj" width="512" height="512" tabindex="0" aria-label="3D FoJ coronal view"></canvas>
@@ -272,7 +286,7 @@
             <div class="demo-footer">
               <div>
                 <strong>Paper CT. Actual fitted junctions.</strong>
-                <p>This is the repository's noise-free 256³ engine volume used in the CT experiments—not a browser-only target. Dense overlapping 6³ patches at stride 2 produce both the regional rendering and the contrast-weighted global boundary response shown here.</p>
+                <p>Every state uses the same 256³ source, dense overlapping 6³ patches, stride 2, search schedule, and random seed. Only the expected photon count changes; each noisy result is precomputed by the repository's actual 3D FoJ optimizer.</p>
               </div>
               <div class="demo-footer-legend" aria-label="Crosshair legend">
                 <span><i class="demo-line-x" aria-hidden="true"></i>x</span>

@@ -50,10 +50,55 @@ if (demoRoot) {
     foj: "3D FoJ junction regions",
     boundary: "3D FoJ global boundary map"
   };
+  const noiseLevels = {
+    clean: {
+      label: "Clean",
+      title: "Clean reference",
+      inputTitle: "Noise-free CT",
+      inputMeta: "Clean reference",
+      fojMeta: "28.99 dB vs clean",
+      description: "No added noise; the experiment volume is shown as the reference state.",
+      file: "static/data/junction-lab-256.bin.gz?v=poisson-sweep-20260828"
+    },
+    p100: {
+      label: "P100",
+      title: "P100 · mild noise",
+      inputTitle: "P100 noisy CT",
+      inputMeta: "29.26 dB · 100 photons",
+      fojMeta: "28.86 dB · −0.40",
+      description: "Mild P100 Poisson noise. The fixed FoJ setting prioritizes the structural representation rather than tuning for this individual level.",
+      file: "static/data/engine-ct-p100-256.bin.gz?v=poisson-sweep-20260828"
+    },
+    p50: {
+      label: "P50",
+      title: "P50 · moderate noise",
+      inputTitle: "P50 noisy CT",
+      inputMeta: "26.27 dB · 50 photons",
+      fojMeta: "28.77 dB · +2.50",
+      description: "Moderate P50 Poisson noise. The same fixed FoJ setting improves the fitted-support PSNR by 2.50 dB.",
+      file: "static/data/engine-ct-p50-256.bin.gz?v=poisson-sweep-20260828"
+    },
+    p20: {
+      label: "P20",
+      title: "P20 · severe noise",
+      inputTitle: "P20 noisy CT",
+      inputMeta: "22.39 dB · 20 photons",
+      fojMeta: "28.51 dB · +6.12",
+      description: "Severe P20 Poisson noise. The same fixed FoJ setting improves the fitted-support PSNR by 6.12 dB.",
+      file: "static/data/engine-ct-p20-256.bin.gz?v=poisson-sweep-20260828"
+    }
+  };
 
   const views = Array.from(demoRoot.querySelectorAll("[data-demo-view]"));
   const status = demoRoot.querySelector("[data-demo-status]");
   const matrix = demoRoot.querySelector("[data-demo-matrix]");
+  const noiseButtons = Array.from(demoRoot.querySelectorAll("[data-demo-noise]"));
+  const noiseTitle = demoRoot.querySelector("[data-demo-noise-title]");
+  const noiseDescription = demoRoot.querySelector("[data-demo-noise-description]");
+  const inputTitle = demoRoot.querySelector("[data-demo-input-title]");
+  const inputMeta = demoRoot.querySelector("[data-demo-input-meta]");
+  const fojMeta = demoRoot.querySelector("[data-demo-foj-meta]");
+  const inputCaptions = Array.from(demoRoot.querySelectorAll("[data-demo-input-caption]"));
   const sliders = Object.fromEntries(
     Array.from(demoRoot.querySelectorAll("[data-demo-axis-slider]")).map((slider) => [slider.dataset.demoAxisSlider, slider])
   );
@@ -71,6 +116,8 @@ if (demoRoot) {
   const state = {
     point: { x: 128, y: 128, z: 128 },
     volumes: {},
+    noiseLevel: "clean",
+    loadRequestId: 0,
     renderQueued: false
   };
 
@@ -241,9 +288,28 @@ if (demoRoot) {
     });
   }
 
-  async function loadVolume() {
-    status.textContent = "Loading the engine CT, junction regions, and global boundaries…";
-    const response = await fetch("static/data/junction-lab-256.bin.gz?v=engine-ct-continuous-20260828");
+  function updateNoiseLabels(levelKey) {
+    const config = noiseLevels[levelKey];
+    noiseButtons.forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.demoNoise === levelKey));
+    });
+    noiseTitle.textContent = config.title;
+    noiseDescription.textContent = config.description;
+    inputTitle.textContent = config.inputTitle;
+    inputMeta.textContent = config.inputMeta;
+    fojMeta.textContent = config.fojMeta;
+    inputCaptions.forEach((caption) => {
+      caption.textContent = config.inputTitle;
+    });
+    methodLabels.input = `${config.label} engine CT input`;
+    methodLabels.foj = `${config.label} 3D FoJ junction regions`;
+    methodLabels.boundary = `${config.label} 3D FoJ global boundary map`;
+  }
+
+  async function loadVolume(levelKey) {
+    const config = noiseLevels[levelKey];
+    status.textContent = `Loading ${config.label} input, junction regions, and boundaries…`;
+    const response = await fetch(config.file);
     if (!response.ok) throw new Error("Could not load the junction demo volume");
     if (!("DecompressionStream" in window) || !response.body) {
       throw new Error("This browser cannot decode the compressed junction demo volume");
@@ -251,17 +317,58 @@ if (demoRoot) {
     const decompressed = response.body.pipeThrough(new DecompressionStream("gzip"));
     const bytes = new Uint8Array(await new Response(decompressed).arrayBuffer());
     if (bytes.length !== CHANNEL_SIZE * 3) throw new Error("Unexpected junction demo volume size");
-    state.volumes = {
+    return {
       input: bytes.subarray(0, CHANNEL_SIZE),
       foj: bytes.subarray(CHANNEL_SIZE, CHANNEL_SIZE * 2),
       boundary: bytes.subarray(CHANNEL_SIZE * 2)
     };
   }
 
+  async function activateNoiseLevel(levelKey) {
+    if (!noiseLevels[levelKey]) return;
+    if (levelKey === state.noiseLevel && state.volumes.input) {
+      if (demoRoot.getAttribute("aria-busy") === "true") {
+        state.loadRequestId += 1;
+        updateNoiseLabels(levelKey);
+        status.textContent = "";
+        demoRoot.setAttribute("aria-busy", "false");
+        render();
+      }
+      return;
+    }
+
+    const requestId = state.loadRequestId + 1;
+    const previousLevel = state.noiseLevel;
+    state.loadRequestId = requestId;
+    updateNoiseLabels(levelKey);
+    demoRoot.setAttribute("aria-busy", "true");
+
+    try {
+      const volumes = await loadVolume(levelKey);
+      if (requestId !== state.loadRequestId) return;
+      state.noiseLevel = levelKey;
+      state.volumes = volumes;
+      status.textContent = "";
+      demoRoot.setAttribute("aria-busy", "false");
+      matrix.removeAttribute("aria-hidden");
+      render();
+    } catch (error) {
+      if (requestId !== state.loadRequestId) return;
+      console.error(error);
+      updateNoiseLabels(previousLevel);
+      status.textContent = `${noiseLevels[levelKey].label} could not be loaded. Try again.`;
+      demoRoot.setAttribute("aria-busy", "false");
+    }
+  }
+
   Object.entries(sliders).forEach(([axis, slider]) => {
     slider.addEventListener("input", () => {
       setPoint({ ...state.point, [axis]: Number(slider.value) });
     });
+  });
+
+  noiseButtons.forEach((button) => {
+    button.addEventListener("click", () => activateNoiseLevel(button.dataset.demoNoise));
   });
 
   views.forEach((canvas) => {
@@ -295,17 +402,7 @@ if (demoRoot) {
   });
 
   async function initializeDemo() {
-    try {
-      await loadVolume();
-      status.textContent = "";
-      demoRoot.setAttribute("aria-busy", "false");
-      matrix.removeAttribute("aria-hidden");
-      render();
-    } catch (error) {
-      console.error(error);
-      status.textContent = "The demonstration volume could not be loaded. Please refresh the page.";
-      demoRoot.setAttribute("aria-busy", "false");
-    }
+    await activateNoiseLevel("clean");
   }
 
   updateLabels();
