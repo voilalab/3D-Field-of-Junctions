@@ -8,19 +8,20 @@ are stored in `z, y, x` order.
 The controlled phantom combines intersecting oblique planes, corners, ribs, a
 rotated void, and square channels. It is a visualization designed to make the
 3D behavior of the representation easy to inspect; it is not a benchmark or a
-paper result. The middle channel is produced by the repository's actual 3D FoJ
-optimizer in overlapping memory-safe blocks. A one-voxel separable binomial
-filter suppresses residual patch-grid texture for display.
+paper result. The middle channel's foreground crop is produced at native voxel
+resolution by the repository's actual 3D FoJ optimizer on a dense overlapping
+patch field. The constant exterior is estimated from the noisy volume's outer
+support. No display blur or patch-grid antialiasing is applied.
 
 - Noise model: Poisson, 20 expected photons per voxel (P20)
-- Input PSNR: 20.75 dB
-- Displayed 3D FoJ PSNR: 24.71 dB (+3.96 dB)
-- 3D FoJ settings: patch size 8, stride 8, 5 wedge values, 1 exhaustive
-  initialization, and 5 refinement iterations per block
-- Block assembly: `88^3` blocks with 4-voxel overlap and separable linear
-  blending
+- Input PSNR: 25.93 dB
+- 3D FoJ PSNR: 29.83 dB (+3.90 dB)
+- 3D FoJ settings: patch size 10, stride 2, 5 wedge values, 1 exhaustive
+  initialization, and 1 refinement iteration
+- Dense-field assembly: disjoint batches of patch locations are reconstructed
+  and combined with exact voxel-wise overlap counts
 
 Regenerate the asset with `scripts/generate_demo_volume.py` from the repository
 root, then gzip the resulting binary for the browser. The exact random seed,
-phantom construction, block assembly, and antialiasing step are recorded in
-that script.
+phantom construction, dense patch assembly, and optimizer settings are recorded
+in that script.

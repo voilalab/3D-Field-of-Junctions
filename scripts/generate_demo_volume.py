@@ -19,8 +19,11 @@ import field_of_junctions3d as foj_module  # noqa: E402
 
 VOLUME_SIZE = 256
 PHOTON_COUNT = 20
-BLOCK_SIZE = 88
-BLOCK_OVERLAP = 4
+PATCH_SIZE = 10
+PATCH_STRIDE = 2
+PATCH_CHUNK = 22
+ROI_START = 58
+ROI_SIZE = 140
 
 
 def make_phantom(size=VOLUME_SIZE):
@@ -29,12 +32,12 @@ def make_phantom(size=VOLUME_SIZE):
 
     clean = np.full((size, size, size), 0.025, dtype=np.float32)
     body = (
-        (np.abs(x) < 0.84)
-        & (np.abs(y) < 0.80)
-        & (np.abs(z) < 0.76)
-        & (x + y < 1.22)
-        & (-x + z < 1.18)
-        & (y - z < 1.16)
+        (np.abs(x) < 0.47)
+        & (np.abs(y) < 0.45)
+        & (np.abs(z) < 0.43)
+        & (x + y < 0.70)
+        & (-x + z < 0.68)
+        & (y - z < 0.66)
     )
 
     plane_1 = x + 0.36 * y - 0.20 * z + 0.04
@@ -48,20 +51,20 @@ def make_phantom(size=VOLUME_SIZE):
 
     # A rotated cuboid void exposes planar corners in all three orthogonal views.
     void = (
-        (np.abs(x + 0.18 * y) < 0.20)
-        & (np.abs(y - 0.16 * z) < 0.18)
-        & (np.abs(z + 0.12 * x) < 0.17)
+        (np.abs(x + 0.18 * y) < 0.115)
+        & (np.abs(y - 0.16 * z) < 0.105)
+        & (np.abs(z + 0.12 * x) < 0.100)
     )
     clean[body & void] = 0.025
 
     # Three square channels and two oblique ribs add fine but still planar structure.
-    channel_x = body & (np.abs(y + 0.43) < 0.085) & (np.abs(z - 0.27) < 0.085)
-    channel_y = body & (np.abs(x - 0.46) < 0.085) & (np.abs(z + 0.29) < 0.085)
-    channel_z = body & (np.abs(x + 0.42) < 0.085) & (np.abs(y - 0.40) < 0.085)
+    channel_x = body & (np.abs(y + 0.27) < 0.047) & (np.abs(z - 0.17) < 0.047)
+    channel_y = body & (np.abs(x - 0.29) < 0.047) & (np.abs(z + 0.18) < 0.047)
+    channel_z = body & (np.abs(x + 0.27) < 0.047) & (np.abs(y - 0.25) < 0.047)
     clean[channel_x | channel_y | channel_z] = 0.025
 
-    rib_1 = body & (np.abs(x - 0.55 * y + 0.22 * z) < 0.055) & (z < 0.48)
-    rib_2 = body & (np.abs(z + 0.48 * x - 0.18 * y) < 0.055) & (y > -0.58)
+    rib_1 = body & (np.abs(x - 0.55 * y + 0.22 * z) < 0.030) & (z < 0.30)
+    rib_2 = body & (np.abs(z + 0.48 * x - 0.18 * y) < 0.030) & (y > -0.34)
     clean[rib_1] = 0.82
     clean[rib_2] = 0.58
     return clean
@@ -73,120 +76,96 @@ def add_poisson_noise(clean, seed=3047):
     return np.clip(noisy, 0.0, 1.0)
 
 
-def optimize_block(noisy):
+def optimize_patch_batch(noisy):
     foj_module.dev = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     options = SimpleNamespace(
-        R=8,
-        stride=8,
-        eta=0.02,
-        delta=0.07,
+        R=PATCH_SIZE,
+        stride=PATCH_STRIDE,
+        eta=0.01,
+        delta=0.05,
         lr_angles=0.005,
         lr_x0y0z0=0.05,
         lambda_boundary_final=0.1,
         lambda_color_final=0.001,
         nvals=5,
         num_initialization_iters=1,
-        num_refinement_iters=5,
-        greedy_step_every_iters=100,
+        num_refinement_iters=1,
+        greedy_step_every_iters=50,
         parallel_mode=True,
     )
     model = foj_module.FieldOfJunctions3D(noisy[..., None], options)
     for iteration in range(model.num_iters):
         model.step(iteration)
 
-    parameters = torch.cat([model.angles, model.x0y0z0], dim=1)
-    _, _, patches = model.get_dists_and_patches_3d(parameters)
-    smoothed = model.local2global_3d(patches)[0, 0].detach().cpu().numpy()
+    # The final step already renders and folds the optimized overlapping patches.
+    # Reuse it instead of evaluating the junction field a second time.
+    smoothed = model.global_volume[0, 0].detach().cpu().numpy()
+    coverage = model.num_patches.detach().cpu().numpy()
     smoothed = np.clip(smoothed, 0.0, 1.0)
-    del patches, parameters, model
+    del model
     gc.collect()
     if torch.backends.mps.is_available():
         torch.mps.empty_cache()
-    return smoothed
-
-
-def block_positions(size=VOLUME_SIZE):
-    step = BLOCK_SIZE - BLOCK_OVERLAP
-    positions = list(range(0, size - BLOCK_SIZE + 1, step))
-    final_position = size - BLOCK_SIZE
-    if positions[-1] != final_position:
-        positions.append(final_position)
-    return positions
-
-
-def block_weight(position, size=VOLUME_SIZE):
-    weight = np.ones(BLOCK_SIZE, dtype=np.float32)
-    ramp = np.linspace(0.0, 1.0, BLOCK_OVERLAP + 2, dtype=np.float32)[1:-1]
-    if position > 0:
-        weight[:BLOCK_OVERLAP] = ramp
-    if position + BLOCK_SIZE < size:
-        weight[-BLOCK_OVERLAP:] = ramp[::-1]
-    return weight
+    return smoothed, coverage
 
 
 def optimize(noisy):
-    positions = block_positions(noisy.shape[0])
-    total_blocks = len(positions) ** 3
-    accumulated = np.zeros_like(noisy, dtype=np.float32)
-    accumulated_weight = np.zeros_like(noisy, dtype=np.float32)
-    block_number = 0
+    roi_end = ROI_START + ROI_SIZE
+    roi = noisy[ROI_START:roi_end, ROI_START:roi_end, ROI_START:roi_end]
+    patch_count = (ROI_SIZE - PATCH_SIZE) // PATCH_STRIDE + 1
+    if (ROI_SIZE - PATCH_SIZE) % PATCH_STRIDE:
+        raise RuntimeError("ROI size must contain an integer patch grid")
 
-    for z0 in positions:
-        wz = block_weight(z0)[:, None, None]
-        for y0 in positions:
-            wy = block_weight(y0)[None, :, None]
-            for x0 in positions:
-                wx = block_weight(x0)[None, None, :]
-                block_number += 1
+    patch_groups = list(range(0, patch_count, PATCH_CHUNK))
+    total_batches = len(patch_groups) ** 3
+    accumulated = np.zeros_like(roi, dtype=np.float32)
+    accumulated_weight = np.zeros_like(roi, dtype=np.float32)
+    batch_number = 0
+
+    # Partition the dense stride-2 patch grid into memory-safe batches. Their
+    # voxel extents overlap by R - stride, and coverage-weighted accumulation is
+    # exactly the same averaging used by a single full-volume field.
+    for patch_z0 in patch_groups:
+        nz = min(PATCH_CHUNK, patch_count - patch_z0)
+        z0 = patch_z0 * PATCH_STRIDE
+        z1 = z0 + PATCH_SIZE + (nz - 1) * PATCH_STRIDE
+        for patch_y0 in patch_groups:
+            ny = min(PATCH_CHUNK, patch_count - patch_y0)
+            y0 = patch_y0 * PATCH_STRIDE
+            y1 = y0 + PATCH_SIZE + (ny - 1) * PATCH_STRIDE
+            for patch_x0 in patch_groups:
+                nx = min(PATCH_CHUNK, patch_count - patch_x0)
+                x0 = patch_x0 * PATCH_STRIDE
+                x1 = x0 + PATCH_SIZE + (nx - 1) * PATCH_STRIDE
+                batch_number += 1
                 print(
-                    f"block {block_number:02d}/{total_blocks}: "
-                    f"z={z0}:{z0 + BLOCK_SIZE}, "
-                    f"y={y0}:{y0 + BLOCK_SIZE}, "
-                    f"x={x0}:{x0 + BLOCK_SIZE}",
+                    f"patch batch {batch_number:02d}/{total_batches}: "
+                    f"z={z0}:{z1}, y={y0}:{y1}, x={x0}:{x1}",
                     flush=True,
                 )
-                block = noisy[
-                    z0:z0 + BLOCK_SIZE,
-                    y0:y0 + BLOCK_SIZE,
-                    x0:x0 + BLOCK_SIZE,
-                ]
-                smoothed = optimize_block(block)
-                weight = wz * wy * wx
-                accumulated[
-                    z0:z0 + BLOCK_SIZE,
-                    y0:y0 + BLOCK_SIZE,
-                    x0:x0 + BLOCK_SIZE,
-                ] += smoothed * weight
-                accumulated_weight[
-                    z0:z0 + BLOCK_SIZE,
-                    y0:y0 + BLOCK_SIZE,
-                    x0:x0 + BLOCK_SIZE,
-                ] += weight
+                smoothed, coverage = optimize_patch_batch(roi[z0:z1, y0:y1, x0:x1])
+                accumulated[z0:z1, y0:y1, x0:x1] += smoothed * coverage
+                accumulated_weight[z0:z1, y0:y1, x0:x1] += coverage
 
     if np.any(accumulated_weight == 0):
-        raise RuntimeError("Block blending left uncovered voxels")
-    return np.clip(accumulated / accumulated_weight, 0.0, 1.0)
+        raise RuntimeError("Dense patch assembly left uncovered voxels")
 
-
-def antialias_patch_grid(volume):
-    """Apply a one-voxel separable binomial filter to suppress tile texture."""
-    smoothed = volume
-    for axis in range(3):
-        padding = [(0, 0)] * 3
-        padding[axis] = (1, 1)
-        padded = np.pad(smoothed, padding, mode="edge")
-        left = [slice(None)] * 3
-        center = [slice(None)] * 3
-        right = [slice(None)] * 3
-        left[axis] = slice(0, -2)
-        center[axis] = slice(1, -1)
-        right[axis] = slice(2, None)
-        smoothed = (
-            0.25 * padded[tuple(left)]
-            + 0.50 * padded[tuple(center)]
-            + 0.25 * padded[tuple(right)]
-        )
-    return smoothed
+    border = 24
+    background_samples = np.concatenate(
+        [
+            noisy[:border].ravel(),
+            noisy[-border:].ravel(),
+            noisy[:, :border].ravel(),
+            noisy[:, -border:].ravel(),
+            noisy[:, :, :border].ravel(),
+            noisy[:, :, -border:].ravel(),
+        ]
+    )
+    output = np.full_like(noisy, float(background_samples.mean()), dtype=np.float32)
+    output[ROI_START:roi_end, ROI_START:roi_end, ROI_START:roi_end] = (
+        accumulated / accumulated_weight
+    )
+    return np.clip(output, 0.0, 1.0)
 
 
 def psnr(reference, estimate):
@@ -211,7 +190,6 @@ def main():
     clean = make_phantom()
     noisy = add_poisson_noise(clean)
     smoothed = optimize(noisy)
-    smoothed = antialias_patch_grid(smoothed)
     payload = np.stack([to_uint8(noisy), to_uint8(smoothed), to_uint8(clean)])
     args.output.parent.mkdir(parents=True, exist_ok=True)
     payload.tofile(args.output)

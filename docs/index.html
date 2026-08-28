@@ -196,14 +196,14 @@
                     <span class="demo-micro-label">Observation</span>
                     <strong>P20 noisy</strong>
                   </div>
-                  <small>20.75 dB · Poisson</small>
+                  <small>25.93 dB · Poisson</small>
                 </div>
                 <div class="demo-method-head demo-method-head-ours">
                   <div>
                     <span class="demo-micro-label">Ours</span>
                     <strong>3D FoJ</strong>
                   </div>
-                  <small>24.71 dB · +3.96</small>
+                  <small>29.83 dB · +3.90</small>
                 </div>
                 <div class="demo-method-head">
                   <div>
@@ -271,8 +271,8 @@
 
             <div class="demo-footer">
               <div>
-                <strong>Native 256³ 3D FoJ reconstruction.</strong>
-                <p>This controlled phantom is generated and reconstructed directly at full resolution. The middle column uses this repository’s optimizer in overlapping 3D blocks, followed by a one-voxel antialiasing pass to suppress patch-grid texture.</p>
+                <strong>Native-resolution 3D FoJ reconstruction.</strong>
+                <p>The foreground crop is reconstructed directly on the 256³ voxel grid. The middle column uses the paper’s default dense 3D FoJ field: 10³ patches at stride 2, assembled by voxel-wise overlap averaging with no display blur.</p>
               </div>
               <div class="demo-footer-legend" aria-label="Crosshair legend">
                 <span><i class="demo-line-x" aria-hidden="true"></i>x</span>
