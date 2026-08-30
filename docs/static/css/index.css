@@ -1490,6 +1490,15 @@ kbd {
   object-fit: contain;
 }
 
+/* Keep labels embedded in each paper figure at the CT figure's display scale. */
+#panel-cryo .result-image-wrap img {
+  width: 74%;
+}
+
+#panel-point .result-image-wrap img {
+  width: 96%;
+}
+
 .result-panel figcaption {
   max-width: 900px;
   margin: 18px auto 0;
@@ -2102,6 +2111,14 @@ kbd {
 
   .result-image-wrap img {
     min-width: 730px;
+  }
+
+  #panel-cryo .result-image-wrap img {
+    min-width: 540px;
+  }
+
+  #panel-point .result-image-wrap img {
+    min-width: 700px;
   }
 
   .footer-grid {
