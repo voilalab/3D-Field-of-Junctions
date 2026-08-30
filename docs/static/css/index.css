@@ -1966,8 +1966,61 @@ kbd {
   }
 
   .demo-matrix {
-    min-width: 700px;
-    grid-template-columns: 66px repeat(3, minmax(0, 1fr));
+    min-width: 0;
+    grid-template-columns: 44px repeat(3, minmax(0, 1fr));
+  }
+
+  .demo-matrix-corner,
+  .demo-method-head {
+    min-height: 54px;
+  }
+
+  .demo-matrix-corner {
+    font-size: 0.31rem;
+  }
+
+  .demo-matrix-corner::after {
+    width: 66px;
+  }
+
+  .demo-matrix-corner span:first-child {
+    bottom: 5px;
+    left: 4px;
+  }
+
+  .demo-matrix-corner span:last-child {
+    top: 5px;
+    right: 4px;
+  }
+
+  .demo-method-head {
+    padding: 6px;
+  }
+
+  .demo-method-head .demo-micro-label {
+    font-size: 0.4rem;
+  }
+
+  .demo-method-head strong {
+    font-size: clamp(0.5rem, 2.35vw, 0.68rem);
+    line-height: 1.2;
+  }
+
+  .demo-method-head small {
+    display: none;
+  }
+
+  .demo-plane-label strong {
+    font-size: 0.58rem;
+  }
+
+  .demo-plane-label span {
+    font-size: 0.36rem;
+  }
+
+  .demo-plane-label output {
+    margin-top: 2px;
+    font-size: 0.4rem;
   }
 
   .demo-footer > div:first-child {
@@ -2110,15 +2163,16 @@ kbd {
   }
 
   .result-image-wrap img {
-    min-width: 730px;
+    min-width: 0;
+    margin-inline: auto;
   }
 
   #panel-cryo .result-image-wrap img {
-    min-width: 540px;
+    min-width: 0;
   }
 
   #panel-point .result-image-wrap img {
-    min-width: 700px;
+    min-width: 0;
   }
 
   .footer-grid {
@@ -2166,7 +2220,7 @@ kbd {
   }
 
   .demo-matrix {
-    min-width: 650px;
+    min-width: 0;
   }
 
   .demo-stage-column {
