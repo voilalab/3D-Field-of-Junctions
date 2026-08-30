@@ -32,7 +32,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
     <link rel="icon" href="static/images/voila.ico" sizes="64x64">
-    <link rel="stylesheet" href="static/css/index.css?v=presentation-compact-20260830">
+    <link rel="stylesheet" href="static/css/index.css?v=academic-cleanup-20260830">
 
     <script type="application/ld+json">
       {
@@ -126,7 +126,7 @@
               height="690"
             >
             <figcaption>
-              One structural prior, three low-SNR domains. 3D FoJ preserves sharp volumetric structure in low-dose CT, real cryo-ET, and noisy point clouds - without a training set.
+              Results on low-dose CT, real cryo-ET, and point-cloud denoising. All experiments use the same training-free 3D FoJ representation.
             </figcaption>
           </figure>
         </div>
@@ -136,7 +136,7 @@
         <div class="container-wide">
           <div class="section-heading reveal">
             <p class="section-kicker">Interactive demo</p>
-            <h2>One CT volume. Four noise levels. The same junction field.</h2>
+            <h2>Noise robustness on an engine CT volume</h2>
             <p>
               Move from the clean engine volume to P100, P50, and P20 Poisson observations while keeping every 3D FoJ setting fixed. The linked XY, YZ, and XZ views show how the fitted regions and global boundaries change as measurements get noisier.
             </p>
@@ -305,11 +305,8 @@
       <section class="section section-presentation" id="presentation">
         <div class="container">
           <div class="section-heading section-heading-light reveal">
-          <p class="section-kicker">Video</p>
-          <h2>ECCV 2026 presentation.</h2>
-            <p>
-              A complete walkthrough of the structural prior, volumetric formulation, and experimental results.
-            </p>
+            <p class="section-kicker">Video</p>
+            <h2>ECCV 2026 presentation</h2>
           </div>
 
           <div class="presentation-video reveal">
@@ -328,8 +325,8 @@
       <section class="section section-intro" id="abstract">
         <div class="container">
           <div class="section-heading reveal">
-            <p class="section-kicker">Overview</p>
-            <h2>Structure first. No training data.</h2>
+            <p class="section-kicker">Paper</p>
+            <h2>3D Field of Junctions</h2>
           </div>
 
           <div class="abstract-grid">
@@ -343,35 +340,18 @@
               </p>
             </div>
 
-            <aside class="at-a-glance reveal" aria-label="3D FoJ at a glance">
-              <div class="glance-item">
-                <strong>0</strong>
-                <span>training volumes required</span>
-              </div>
-              <div class="glance-item">
-                <strong>3</strong>
-                <span>diverse 3D imaging domains</span>
-              </div>
-              <div class="glance-item">
-                <strong>1</strong>
-                <span>unified structural prior</span>
-              </div>
-            </aside>
           </div>
 
           <div class="contribution-grid">
             <article class="contribution-card reveal">
-              <span class="card-index">01</span>
               <h3>Training-free by design</h3>
               <p>An explicit geometric prior avoids the need for clean training volumes and reduces the risk of learned hallucination.</p>
             </article>
             <article class="contribution-card reveal">
-              <span class="card-index">02</span>
               <h3>Boundary preserving</h3>
               <p>Intersecting planes model sharp corners, straight or bent boundaries, curved surfaces, and constant regions in one representation.</p>
             </article>
             <article class="contribution-card reveal">
-              <span class="card-index">03</span>
               <h3>Inverse-problem ready</h3>
               <p>Use 3D FoJ directly as a denoiser or as a projected/proximal step in a wider volumetric reconstruction loop.</p>
             </article>
@@ -383,7 +363,7 @@
         <div class="container">
           <div class="section-heading section-heading-light reveal">
             <p class="section-kicker">Method</p>
-            <h2>Local junctions, globally consistent volumes.</h2>
+            <h2>Junction representation</h2>
             <p>
               Each overlapping 3D patch is divided by intersecting planes into uniform-valued wedges. Joint optimization aligns both geometry and appearance across neighboring patches.
             </p>
@@ -450,8 +430,7 @@
         <div class="container-wide">
           <div class="section-heading reveal">
             <p class="section-kicker">Results</p>
-            <h2>Robust across modalities and noise models.</h2>
-            <p>Explore representative comparisons from the paper.</p>
+            <h2>Experimental results</h2>
           </div>
 
           <div class="results-explorer reveal">
@@ -497,7 +476,7 @@
         <div class="container">
           <div class="section-heading reveal">
             <p class="section-kicker">Citation</p>
-            <h2>If this work is useful, please cite it.</h2>
+            <h2>BibTeX</h2>
           </div>
 
           <div class="bibtex-card reveal">

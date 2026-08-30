@@ -10,9 +10,9 @@
   --text-muted: #666666;
   --button: #555555;
   --green: #4a7453;
-  --shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-  --shadow-hover: 0 8px 28px rgba(0, 0, 0, 0.2);
-  --radius: 10px;
+  --shadow: none;
+  --shadow-hover: none;
+  --radius: 4px;
   --sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
 }
@@ -101,9 +101,7 @@ a {
   top: 0;
   z-index: 100;
   border-bottom: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.97);
-  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(12px);
+  background: #fff;
 }
 
 .nav-inner {
@@ -189,24 +187,12 @@ a {
 
 .hero-content {
   position: relative;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: 50px 52px 46px;
-  box-shadow: var(--shadow);
+  padding: 42px 52px 38px;
   text-align: center;
 }
 
 .hero-content::before {
-  position: absolute;
-  top: 18px;
-  bottom: 18px;
-  left: 0;
-  width: 4px;
-  border-radius: 0 3px 3px 0;
-  background: linear-gradient(to bottom, var(--gold), transparent);
-  content: "";
+  content: none;
 }
 
 .eyebrow,
@@ -300,7 +286,7 @@ a {
   justify-content: center;
   gap: 7px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 3px;
   padding: 6px 13px;
   font-size: 0.82rem;
   font-weight: 600;
@@ -356,16 +342,7 @@ a {
 .contribution-card::before,
 .method-figure::before,
 .results-explorer::before {
-  position: absolute;
-  top: 16px;
-  bottom: 16px;
-  left: 0;
-  z-index: 2;
-  width: 3px;
-  border-radius: 0 2px 2px 0;
-  background: linear-gradient(to bottom, var(--gold), transparent);
-  content: "";
-  opacity: 0.65;
+  content: none;
 }
 
 .teaser-card img {
@@ -392,14 +369,18 @@ a {
   overflow: hidden;
   margin-inline: auto;
   border: 1px solid #cfcac1;
-  border-radius: 12px;
+  border-radius: 4px;
   background: #fff;
-  box-shadow: var(--shadow-hover);
+  box-shadow: none;
 }
 
 .section-presentation {
   border-bottom: 1px solid #2e2e2e;
   background: #171717;
+}
+
+.section-presentation .section-heading h2 {
+  color: #fff;
 }
 
 .presentation-video {
@@ -408,9 +389,9 @@ a {
   overflow: hidden;
   margin-inline: auto;
   border: 1px solid #3d3d3d;
-  border-radius: 10px;
+  border-radius: 2px;
   background: #050505;
-  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.28);
+  box-shadow: none;
   aspect-ratio: 16 / 9;
 }
 
@@ -1256,13 +1237,9 @@ kbd {
 
 .abstract-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(250px, 0.55fr);
-  gap: 20px;
+  grid-template-columns: 1fr;
 }
 
-.abstract-copy,
-.at-a-glance,
-.contribution-card,
 .method-figure,
 .results-explorer,
 .bibtex-card {
@@ -1273,7 +1250,7 @@ kbd {
 }
 
 .abstract-copy {
-  padding: 30px 32px 24px;
+  max-width: 850px;
 }
 
 .abstract-copy h3 {
@@ -1332,26 +1309,12 @@ kbd {
 }
 
 .contribution-card {
-  position: relative;
-  min-height: 230px;
-  padding: 27px 25px 22px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.contribution-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-hover);
-}
-
-.card-index {
-  color: var(--gold);
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  font-weight: 500;
+  border-top: 1px solid var(--border);
+  padding: 18px 0 0;
 }
 
 .contribution-card h3 {
-  margin: 30px 0 9px;
+  margin: 0 0 9px;
   color: #000;
   font-size: 1.08rem;
 }
@@ -1392,7 +1355,7 @@ kbd {
   overflow: hidden;
   margin: 0;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 2px;
   background: #fff;
 }
 
@@ -1483,7 +1446,7 @@ kbd {
 
 .result-tabs button {
   border: 1px solid transparent;
-  border-radius: 20px;
+  border-radius: 3px;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
@@ -1517,7 +1480,7 @@ kbd {
   place-items: center;
   overflow: auto;
   border: 1px solid #e3e3e3;
-  border-radius: 8px;
+  border-radius: 2px;
   background: #fff;
 }
 
