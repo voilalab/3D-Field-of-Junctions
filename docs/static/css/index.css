@@ -987,6 +987,12 @@ kbd {
   padding: 16px;
 }
 
+.demo-volume-view + .demo-volume-view {
+  margin-top: 16px;
+  border-top: 1px solid #373737;
+  padding-top: 15px;
+}
+
 .demo-volume-head {
   display: flex;
   min-height: 55px;

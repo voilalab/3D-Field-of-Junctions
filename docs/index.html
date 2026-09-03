@@ -32,7 +32,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
     <link rel="icon" href="static/images/voila.ico" sizes="64x64">
-    <link rel="stylesheet" href="static/css/index.css?v=volume-cutaway-20260903">
+    <link rel="stylesheet" href="static/css/index.css?v=volume-comparison-20260903">
 
     <script type="application/ld+json">
       {
@@ -54,7 +54,7 @@
         "codeRepository": "https://github.com/voilalab/3D-Field-of-Junctions"
       }
     </script>
-    <script defer src="static/js/index.js?v=volume-cutaway-fill-20260903"></script>
+    <script defer src="static/js/index.js?v=volume-comparison-20260903"></script>
   </head>
 
   <body>
@@ -288,16 +288,31 @@
               </div>
 
               <aside class="demo-volume-panel" aria-label="Interactive 3D volume renderer">
-                <div class="demo-volume-head">
-                  <div>
-                    <span class="demo-micro-label">Interactive 3D</span>
-                    <strong data-demo-volume-title>Clean · 3D FoJ</strong>
+                <div class="demo-volume-view">
+                  <div class="demo-volume-head">
+                    <div>
+                      <span class="demo-micro-label">3D FoJ</span>
+                      <strong data-demo-volume-title>Clean result</strong>
+                    </div>
+                    <button type="button" data-demo-volume-reset>Reset</button>
                   </div>
-                  <button type="button" data-demo-volume-reset>Reset</button>
+                  <div class="demo-volume-canvas-wrap">
+                    <canvas data-demo-volume width="512" height="512" tabindex="0" aria-label="Rotatable cutaway rendering of the clean 3D FoJ volume"></canvas>
+                    <p class="demo-volume-status" data-demo-volume-status role="status" aria-live="polite">Loading 3D FoJ volume…</p>
+                  </div>
                 </div>
-                <div class="demo-volume-canvas-wrap">
-                  <canvas data-demo-volume width="512" height="512" tabindex="0" aria-label="Rotatable cutaway rendering of the clean 3D FoJ volume"></canvas>
-                  <p class="demo-volume-status" data-demo-volume-status role="status" aria-live="polite">Loading 3D volume…</p>
+
+                <div class="demo-volume-view demo-volume-view-input">
+                  <div class="demo-volume-head">
+                    <div>
+                      <span class="demo-micro-label">Noisy input</span>
+                      <strong data-demo-input-volume-title>Clean reference</strong>
+                    </div>
+                  </div>
+                  <div class="demo-volume-canvas-wrap">
+                    <canvas data-demo-input-volume width="512" height="512" tabindex="0" aria-label="Rotatable cutaway rendering of the clean input volume"></canvas>
+                    <p class="demo-volume-status" data-demo-input-volume-status role="status" aria-live="polite">Loading input volume…</p>
+                  </div>
                 </div>
                 <div class="demo-volume-controls">
                   <label class="demo-volume-control">

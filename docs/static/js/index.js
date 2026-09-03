@@ -102,6 +102,9 @@ if (demoRoot) {
   const volumeCanvas = demoRoot.querySelector("[data-demo-volume]");
   const volumeStatus = demoRoot.querySelector("[data-demo-volume-status]");
   const volumeTitle = demoRoot.querySelector("[data-demo-volume-title]");
+  const inputVolumeCanvas = demoRoot.querySelector("[data-demo-input-volume]");
+  const inputVolumeStatus = demoRoot.querySelector("[data-demo-input-volume-status]");
+  const inputVolumeTitle = demoRoot.querySelector("[data-demo-input-volume-title]");
   const volumeReset = demoRoot.querySelector("[data-demo-volume-reset]");
   const volumeCut = demoRoot.querySelector("[data-demo-volume-cut]");
   const volumeCutOutput = demoRoot.querySelector("[data-demo-volume-cut-output]");
@@ -129,10 +132,12 @@ if (demoRoot) {
     renderQueued: false
   };
 
-  function createVolumeRenderer(canvas) {
+  function createVolumeRenderer(canvas, statusElement, bindControls = false) {
     const unavailable = {
       setLoading() {},
       setVolume() {},
+      setViewState() {},
+      onViewChange() {},
       render() {}
     };
     if (!canvas) return unavailable;
@@ -143,7 +148,7 @@ if (demoRoot) {
       powerPreference: "high-performance"
     });
     if (!gl) {
-      volumeStatus.textContent = "WebGL 2 is required for the 3D view.";
+      statusElement.textContent = "WebGL 2 is required for the 3D view.";
       return unavailable;
     }
 
@@ -285,7 +290,7 @@ if (demoRoot) {
       }
     } catch (error) {
       console.error(error);
-      volumeStatus.textContent = "The 3D renderer could not be initialized.";
+      statusElement.textContent = "The 3D renderer could not be initialized.";
       return unavailable;
     }
 
@@ -327,6 +332,25 @@ if (demoRoot) {
       lastX: 0,
       lastY: 0
     };
+    let viewChangeListener = null;
+
+    function updateControlReadouts() {
+      const cutPercentage = Math.round(viewState.cut * 100);
+      volumeCut.value = String(cutPercentage);
+      volumeCutOutput.textContent = `${cutPercentage}%`;
+      const thresholdValue = Math.round(viewState.threshold * 255);
+      volumeThreshold.value = String(thresholdValue);
+      volumeThresholdOutput.textContent = String(thresholdValue);
+    }
+
+    function notifyViewChange() {
+      viewChangeListener?.({
+        yaw: viewState.yaw,
+        pitch: viewState.pitch,
+        cut: viewState.cut,
+        threshold: viewState.threshold
+      });
+    }
 
     function resizeCanvas() {
       const bounds = canvas.getBoundingClientRect();
@@ -360,9 +384,9 @@ if (demoRoot) {
       viewState.yaw = -0.7;
       viewState.pitch = 0.42;
       viewState.cut = 0;
-      volumeCut.value = "0";
-      volumeCutOutput.textContent = "0%";
+      updateControlReadouts();
       renderVolume();
+      notifyViewChange();
     }
 
     function setCutDepth(nextCut) {
@@ -371,6 +395,7 @@ if (demoRoot) {
       volumeCut.value = String(percentage);
       volumeCutOutput.textContent = `${percentage}%`;
       renderVolume();
+      notifyViewChange();
     }
 
     canvas.addEventListener("pointerdown", (event) => {
@@ -390,6 +415,7 @@ if (demoRoot) {
       viewState.yaw += deltaX * 0.009;
       viewState.pitch = Math.max(-1.45, Math.min(1.45, viewState.pitch + deltaY * 0.009));
       renderVolume();
+      notifyViewChange();
     });
     function stopDragging(event) {
       if (event.pointerId !== viewState.pointerId) return;
@@ -420,18 +446,22 @@ if (demoRoot) {
         setCutDepth(viewState.cut - 0.025);
       } else {
         renderVolume();
+        notifyViewChange();
       }
     });
-    volumeReset?.addEventListener("click", resetView);
-    volumeCut?.addEventListener("input", () => {
-      setCutDepth(Number(volumeCut.value) / 100);
-    });
-    volumeThreshold?.addEventListener("input", () => {
-      const value = Number(volumeThreshold.value);
-      viewState.threshold = value / 255;
-      volumeThresholdOutput.textContent = String(value);
-      renderVolume();
-    });
+    if (bindControls) {
+      volumeReset?.addEventListener("click", resetView);
+      volumeCut?.addEventListener("input", () => {
+        setCutDepth(Number(volumeCut.value) / 100);
+      });
+      volumeThreshold?.addEventListener("input", () => {
+        const value = Number(volumeThreshold.value);
+        viewState.threshold = value / 255;
+        volumeThresholdOutput.textContent = String(value);
+        renderVolume();
+        notifyViewChange();
+      });
+    }
 
     if ("ResizeObserver" in window) {
       const resizeObserver = new ResizeObserver(renderVolume);
@@ -442,7 +472,7 @@ if (demoRoot) {
 
     return {
       setLoading(label) {
-        volumeStatus.textContent = `Loading ${label} 3D volume…`;
+        statusElement.textContent = `Loading ${label} 3D volume…`;
       },
       setVolume(volume) {
         gl.activeTexture(gl.TEXTURE0);
@@ -460,14 +490,28 @@ if (demoRoot) {
           volume
         );
         viewState.hasVolume = true;
-        volumeStatus.textContent = "";
+        statusElement.textContent = "";
         renderVolume();
+      },
+      setViewState(nextViewState) {
+        viewState.yaw = nextViewState.yaw;
+        viewState.pitch = nextViewState.pitch;
+        viewState.cut = nextViewState.cut;
+        viewState.threshold = nextViewState.threshold;
+        updateControlReadouts();
+        renderVolume();
+      },
+      onViewChange(listener) {
+        viewChangeListener = listener;
       },
       render: renderVolume
     };
   }
 
-  const volumeRenderer = createVolumeRenderer(volumeCanvas);
+  const volumeRenderer = createVolumeRenderer(volumeCanvas, volumeStatus, true);
+  const inputVolumeRenderer = createVolumeRenderer(inputVolumeCanvas, inputVolumeStatus);
+  volumeRenderer.onViewChange((nextViewState) => inputVolumeRenderer.setViewState(nextViewState));
+  inputVolumeRenderer.onViewChange((nextViewState) => volumeRenderer.setViewState(nextViewState));
 
   function clamp(value) {
     return Math.max(0, Math.min(VOLUME_SIZE - 1, Math.round(value)));
@@ -649,8 +693,10 @@ if (demoRoot) {
     inputCaptions.forEach((caption) => {
       caption.textContent = config.inputTitle;
     });
-    volumeTitle.textContent = `${config.label} · 3D FoJ`;
+    volumeTitle.textContent = `${config.label} result`;
+    inputVolumeTitle.textContent = config.inputTitle;
     volumeCanvas.setAttribute("aria-label", `Rotatable cutaway rendering of the ${config.label} 3D FoJ volume`);
+    inputVolumeCanvas.setAttribute("aria-label", `Rotatable cutaway rendering of the ${config.inputTitle} volume`);
     methodLabels.input = `${config.label} engine CT input`;
     methodLabels.foj = `${config.label} 3D FoJ junction regions`;
     methodLabels.boundary = `${config.label} 3D FoJ global boundary map`;
@@ -692,6 +738,7 @@ if (demoRoot) {
     state.loadRequestId = requestId;
     updateNoiseLabels(levelKey);
     volumeRenderer.setLoading(noiseLevels[levelKey].label);
+    inputVolumeRenderer.setLoading(noiseLevels[levelKey].label);
     demoRoot.setAttribute("aria-busy", "true");
 
     try {
@@ -700,6 +747,7 @@ if (demoRoot) {
       state.noiseLevel = levelKey;
       state.volumes = volumes;
       volumeRenderer.setVolume(volumes.foj);
+      inputVolumeRenderer.setVolume(volumes.input);
       status.textContent = "";
       demoRoot.setAttribute("aria-busy", "false");
       matrix.removeAttribute("aria-hidden");
