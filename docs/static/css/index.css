@@ -1027,6 +1027,17 @@ kbd {
   color: #fff;
 }
 
+.demo-volume-head button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.demo-volume-error-toggle[aria-pressed="true"] {
+  border-color: #e46158;
+  background: #8f2823;
+  color: #fff;
+}
+
 .demo-volume-canvas-wrap {
   position: relative;
   overflow: hidden;

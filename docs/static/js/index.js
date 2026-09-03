@@ -105,6 +105,7 @@ if (demoRoot) {
   const inputVolumeCanvas = demoRoot.querySelector("[data-demo-input-volume]");
   const inputVolumeStatus = demoRoot.querySelector("[data-demo-input-volume-status]");
   const inputVolumeTitle = demoRoot.querySelector("[data-demo-input-volume-title]");
+  const inputVolumeError = demoRoot.querySelector("[data-demo-volume-error]");
   const volumeReset = demoRoot.querySelector("[data-demo-volume-reset]");
   const volumeCut = demoRoot.querySelector("[data-demo-volume-cut]");
   const volumeCutOutput = demoRoot.querySelector("[data-demo-volume-cut-output]");
@@ -136,6 +137,8 @@ if (demoRoot) {
     const unavailable = {
       setLoading() {},
       setVolume() {},
+      setComparisonVolume() {},
+      setErrorMode() {},
       setViewState() {},
       onViewChange() {},
       render() {}
@@ -168,10 +171,12 @@ if (demoRoot) {
 
       in vec2 v_uv;
       uniform sampler3D u_volume;
+      uniform sampler3D u_comparison;
       uniform vec2 u_rotation;
       uniform float u_cut;
       uniform float u_threshold;
       uniform float u_aspect;
+      uniform int u_error_mode;
       out vec4 out_color;
 
       vec3 rotate_x(vec3 point, float angle) {
@@ -205,6 +210,17 @@ if (demoRoot) {
         return texture(u_volume, clamp(point, vec3(0.0), vec3(1.0))).r;
       }
 
+      float comparison_value(vec3 point) {
+        return texture(u_comparison, clamp(point, vec3(0.0), vec3(1.0))).r;
+      }
+
+      vec3 error_overlay(vec3 base_color, vec3 point) {
+        if (u_error_mode == 0) return base_color;
+        float residual = abs(volume_value(point) - comparison_value(point));
+        float highlight = smoothstep(0.02, 0.14, residual);
+        return mix(base_color * 0.48, vec3(0.96, 0.12, 0.08), highlight);
+      }
+
       void main() {
         vec2 screen = v_uv * 2.0 - 1.0;
         screen.x *= u_aspect;
@@ -228,11 +244,14 @@ if (demoRoot) {
 
         bool cut_intersects_ray = u_cut > 0.001 && clip_distance >= hit.x && clip_distance <= hit.y;
         if (cut_intersects_ray) {
-          float cut_value = volume_value(origin + direction * clip_distance);
-          if (cut_value > 0.018) {
+          vec3 cut_point = origin + direction * clip_distance;
+          float cut_value = volume_value(cut_point);
+          float cut_residual = abs(cut_value - comparison_value(cut_point));
+          if (cut_value > 0.018 || (u_error_mode == 1 && cut_residual > 0.02)) {
             float cut_tone = smoothstep(0.018, 0.85, cut_value);
             vec3 cut_color = mix(vec3(0.16, 0.17, 0.18), vec3(0.88, 0.74, 0.52), cut_tone);
-            out_color = vec4(cut_color * (0.7 + 0.3 * cut_tone), 1.0);
+            cut_color = error_overlay(cut_color * (0.7 + 0.3 * cut_tone), cut_point);
+            out_color = vec4(cut_color, 1.0);
             return;
           }
         }
@@ -253,7 +272,8 @@ if (demoRoot) {
             vec3 base = mix(vec3(0.48, 0.50, 0.53), vec3(0.83, 0.69, 0.48), material * 0.48);
             vec3 color = base * diffuse + vec3(0.24, 0.19, 0.12) * rim;
             float depth_fade = mix(1.0, 0.78, (float(step_index) / 192.0));
-            out_color = vec4(color * depth_fade, 1.0);
+            color = error_overlay(color * depth_fade, point);
+            out_color = vec4(color, 1.0);
             return;
           }
           point += direction * step_size;
@@ -314,18 +334,31 @@ if (demoRoot) {
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 
+    const comparisonTexture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_3D, comparisonTexture);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+    gl.texImage3D(gl.TEXTURE_3D, 0, gl.R8, 1, 1, 1, 0, gl.RED, gl.UNSIGNED_BYTE, new Uint8Array([0]));
+
     const uniforms = {
       volume: gl.getUniformLocation(program, "u_volume"),
+      comparison: gl.getUniformLocation(program, "u_comparison"),
       rotation: gl.getUniformLocation(program, "u_rotation"),
       cut: gl.getUniformLocation(program, "u_cut"),
       threshold: gl.getUniformLocation(program, "u_threshold"),
-      aspect: gl.getUniformLocation(program, "u_aspect")
+      aspect: gl.getUniformLocation(program, "u_aspect"),
+      errorMode: gl.getUniformLocation(program, "u_error_mode")
     };
     const viewState = {
       yaw: -0.7,
       pitch: 0.42,
       cut: Number(volumeCut?.value || 0) / 100,
       threshold: Number(volumeThreshold?.value || 36) / 255,
+      errorMode: false,
       hasVolume: false,
       dragging: false,
       pointerId: null,
@@ -372,11 +405,15 @@ if (demoRoot) {
       gl.useProgram(program);
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_3D, texture);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_3D, comparisonTexture);
       gl.uniform1i(uniforms.volume, 0);
+      gl.uniform1i(uniforms.comparison, 1);
       gl.uniform2f(uniforms.rotation, viewState.yaw, viewState.pitch);
       gl.uniform1f(uniforms.cut, viewState.cut);
       gl.uniform1f(uniforms.threshold, viewState.threshold);
       gl.uniform1f(uniforms.aspect, canvas.width / canvas.height);
+      gl.uniform1i(uniforms.errorMode, viewState.errorMode ? 1 : 0);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
 
@@ -493,6 +530,27 @@ if (demoRoot) {
         statusElement.textContent = "";
         renderVolume();
       },
+      setComparisonVolume(volume) {
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_3D, comparisonTexture);
+        gl.texImage3D(
+          gl.TEXTURE_3D,
+          0,
+          gl.R8,
+          VOLUME_SIZE,
+          VOLUME_SIZE,
+          VOLUME_SIZE,
+          0,
+          gl.RED,
+          gl.UNSIGNED_BYTE,
+          volume
+        );
+        renderVolume();
+      },
+      setErrorMode(enabled) {
+        viewState.errorMode = Boolean(enabled);
+        renderVolume();
+      },
       setViewState(nextViewState) {
         viewState.yaw = nextViewState.yaw;
         viewState.pitch = nextViewState.pitch;
@@ -512,6 +570,17 @@ if (demoRoot) {
   const inputVolumeRenderer = createVolumeRenderer(inputVolumeCanvas, inputVolumeStatus);
   volumeRenderer.onViewChange((nextViewState) => inputVolumeRenderer.setViewState(nextViewState));
   inputVolumeRenderer.onViewChange((nextViewState) => volumeRenderer.setViewState(nextViewState));
+
+  function setInputErrorMode(enabled) {
+    const isEnabled = Boolean(enabled);
+    inputVolumeError.setAttribute("aria-pressed", String(isEnabled));
+    inputVolumeRenderer.setErrorMode(isEnabled);
+  }
+
+  inputVolumeError.addEventListener("click", () => {
+    if (inputVolumeError.disabled) return;
+    setInputErrorMode(inputVolumeError.getAttribute("aria-pressed") !== "true");
+  });
 
   function clamp(value) {
     return Math.max(0, Math.min(VOLUME_SIZE - 1, Math.round(value)));
@@ -695,6 +764,8 @@ if (demoRoot) {
     });
     volumeTitle.textContent = `${config.label} result`;
     inputVolumeTitle.textContent = config.inputTitle;
+    setInputErrorMode(false);
+    inputVolumeError.disabled = levelKey === "clean";
     volumeCanvas.setAttribute("aria-label", `Rotatable cutaway rendering of the ${config.label} 3D FoJ volume`);
     inputVolumeCanvas.setAttribute("aria-label", `Rotatable cutaway rendering of the ${config.inputTitle} volume`);
     methodLabels.input = `${config.label} engine CT input`;
@@ -737,6 +808,7 @@ if (demoRoot) {
     const previousLevel = state.noiseLevel;
     state.loadRequestId = requestId;
     updateNoiseLabels(levelKey);
+    inputVolumeError.disabled = true;
     volumeRenderer.setLoading(noiseLevels[levelKey].label);
     inputVolumeRenderer.setLoading(noiseLevels[levelKey].label);
     demoRoot.setAttribute("aria-busy", "true");
@@ -748,6 +820,8 @@ if (demoRoot) {
       state.volumes = volumes;
       volumeRenderer.setVolume(volumes.foj);
       inputVolumeRenderer.setVolume(volumes.input);
+      inputVolumeRenderer.setComparisonVolume(volumes.foj);
+      inputVolumeError.disabled = levelKey === "clean";
       status.textContent = "";
       demoRoot.setAttribute("aria-busy", "false");
       matrix.removeAttribute("aria-hidden");

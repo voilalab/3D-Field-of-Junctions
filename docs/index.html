@@ -32,7 +32,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
     <link rel="icon" href="static/images/voila.ico" sizes="64x64">
-    <link rel="stylesheet" href="static/css/index.css?v=volume-comparison-20260903">
+    <link rel="stylesheet" href="static/css/index.css?v=volume-error-overlay-20260903">
 
     <script type="application/ld+json">
       {
@@ -54,7 +54,7 @@
         "codeRepository": "https://github.com/voilalab/3D-Field-of-Junctions"
       }
     </script>
-    <script defer src="static/js/index.js?v=volume-comparison-20260903"></script>
+    <script defer src="static/js/index.js?v=volume-error-overlay-20260903"></script>
   </head>
 
   <body>
@@ -308,6 +308,7 @@
                       <span class="demo-micro-label">Noisy input</span>
                       <strong data-demo-input-volume-title>Clean reference</strong>
                     </div>
+                    <button class="demo-volume-error-toggle" type="button" data-demo-volume-error aria-label="Show removed noise as error" aria-pressed="false" disabled>Error</button>
                   </div>
                   <div class="demo-volume-canvas-wrap">
                     <canvas data-demo-input-volume width="512" height="512" tabindex="0" aria-label="Rotatable cutaway rendering of the clean input volume"></canvas>
