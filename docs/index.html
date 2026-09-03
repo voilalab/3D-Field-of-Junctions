@@ -32,7 +32,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
     <link rel="icon" href="static/images/voila.ico" sizes="64x64">
-    <link rel="stylesheet" href="static/css/index.css?v=mobile-fit-20260830">
+    <link rel="stylesheet" href="static/css/index.css?v=volume-renderer-20260903">
 
     <script type="application/ld+json">
       {
@@ -54,7 +54,7 @@
         "codeRepository": "https://github.com/voilalab/3D-Field-of-Junctions"
       }
     </script>
-    <script defer src="static/js/index.js?v=poisson-sweep-20260828"></script>
+    <script defer src="static/js/index.js?v=volume-renderer-20260903"></script>
   </head>
 
   <body>
@@ -198,92 +198,113 @@
               </div>
             </div>
 
-            <div class="demo-matrix-wrap">
-              <div class="demo-loading" data-demo-status role="status" aria-live="polite">
-                Loading the engine CT and fitted junction field…
+            <div class="demo-workspace">
+              <div class="demo-matrix-wrap">
+                <div class="demo-loading" data-demo-status role="status" aria-live="polite">
+                  Loading the engine CT and fitted junction field…
+                </div>
+
+                <div class="demo-matrix" data-demo-matrix>
+                  <div class="demo-matrix-corner" aria-hidden="true">
+                    <span>orientation</span>
+                    <span>representation</span>
+                  </div>
+                  <div class="demo-method-head">
+                    <div>
+                      <span class="demo-micro-label">Input</span>
+                      <strong data-demo-input-title>Noise-free CT</strong>
+                    </div>
+                    <small data-demo-input-meta>Clean reference</small>
+                  </div>
+                  <div class="demo-method-head demo-method-head-ours">
+                    <div>
+                      <span class="demo-micro-label">Local model</span>
+                      <strong>Junction regions</strong>
+                    </div>
+                    <small data-demo-foj-meta>28.99 dB vs clean</small>
+                  </div>
+                  <div class="demo-method-head">
+                    <div>
+                      <span class="demo-micro-label">Global structure</span>
+                      <strong>Junction boundaries</strong>
+                    </div>
+                    <small>Continuous global contour map</small>
+                  </div>
+
+                  <div class="demo-plane-label">
+                    <strong>XY</strong>
+                    <span>axial</span>
+                    <output data-demo-plane-output="xy">z = 128</output>
+                  </div>
+                  <figure class="demo-view">
+                    <canvas data-demo-view="xy" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noise-free engine CT axial view"></canvas>
+                    <figcaption><span data-demo-input-caption>Noise-free CT</span> · XY</figcaption>
+                  </figure>
+                  <figure class="demo-view demo-view-ours">
+                    <canvas data-demo-view="xy" data-demo-method="foj" width="512" height="512" tabindex="0" aria-label="3D FoJ axial view"></canvas>
+                    <figcaption>Junction regions · XY</figcaption>
+                  </figure>
+                  <figure class="demo-view">
+                    <canvas data-demo-view="xy" data-demo-method="boundary" width="512" height="512" tabindex="0" aria-label="3D FoJ global boundary map axial view"></canvas>
+                    <figcaption>Junction boundaries · XY</figcaption>
+                  </figure>
+
+                  <div class="demo-plane-label">
+                    <strong>YZ</strong>
+                    <span>sagittal</span>
+                    <output data-demo-plane-output="yz">x = 128</output>
+                  </div>
+                  <figure class="demo-view">
+                    <canvas data-demo-view="yz" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noise-free engine CT sagittal view"></canvas>
+                    <figcaption><span data-demo-input-caption>Noise-free CT</span> · YZ</figcaption>
+                  </figure>
+                  <figure class="demo-view demo-view-ours">
+                    <canvas data-demo-view="yz" data-demo-method="foj" width="512" height="512" tabindex="0" aria-label="3D FoJ sagittal view"></canvas>
+                    <figcaption>Junction regions · YZ</figcaption>
+                  </figure>
+                  <figure class="demo-view">
+                    <canvas data-demo-view="yz" data-demo-method="boundary" width="512" height="512" tabindex="0" aria-label="3D FoJ global boundary map sagittal view"></canvas>
+                    <figcaption>Junction boundaries · YZ</figcaption>
+                  </figure>
+
+                  <div class="demo-plane-label">
+                    <strong>XZ</strong>
+                    <span>coronal</span>
+                    <output data-demo-plane-output="xz">y = 128</output>
+                  </div>
+                  <figure class="demo-view">
+                    <canvas data-demo-view="xz" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noise-free engine CT coronal view"></canvas>
+                    <figcaption><span data-demo-input-caption>Noise-free CT</span> · XZ</figcaption>
+                  </figure>
+                  <figure class="demo-view demo-view-ours">
+                    <canvas data-demo-view="xz" data-demo-method="foj" width="512" height="512" tabindex="0" aria-label="3D FoJ coronal view"></canvas>
+                    <figcaption>Junction regions · XZ</figcaption>
+                  </figure>
+                  <figure class="demo-view">
+                    <canvas data-demo-view="xz" data-demo-method="boundary" width="512" height="512" tabindex="0" aria-label="3D FoJ global boundary map coronal view"></canvas>
+                    <figcaption>Junction boundaries · XZ</figcaption>
+                  </figure>
+                </div>
               </div>
 
-              <div class="demo-matrix" data-demo-matrix>
-                <div class="demo-matrix-corner" aria-hidden="true">
-                  <span>orientation</span>
-                  <span>representation</span>
-                </div>
-                <div class="demo-method-head">
+              <aside class="demo-volume-panel" aria-label="Interactive 3D volume renderer">
+                <div class="demo-volume-head">
                   <div>
-                    <span class="demo-micro-label">Input</span>
-                    <strong data-demo-input-title>Noise-free CT</strong>
+                    <span class="demo-micro-label">Interactive 3D</span>
+                    <strong data-demo-volume-title>Clean · 3D FoJ</strong>
                   </div>
-                  <small data-demo-input-meta>Clean reference</small>
+                  <button type="button" data-demo-volume-reset>Reset</button>
                 </div>
-                <div class="demo-method-head demo-method-head-ours">
-                  <div>
-                    <span class="demo-micro-label">Local model</span>
-                    <strong>Junction regions</strong>
-                  </div>
-                  <small data-demo-foj-meta>28.99 dB vs clean</small>
+                <div class="demo-volume-canvas-wrap">
+                  <canvas data-demo-volume width="512" height="512" tabindex="0" aria-label="Rotatable 3D rendering of the clean 3D FoJ volume"></canvas>
+                  <p class="demo-volume-status" data-demo-volume-status role="status" aria-live="polite">Loading 3D volume…</p>
                 </div>
-                <div class="demo-method-head">
-                  <div>
-                    <span class="demo-micro-label">Global structure</span>
-                    <strong>Junction boundaries</strong>
-                  </div>
-                  <small>Continuous global contour map</small>
-                </div>
-
-                <div class="demo-plane-label">
-                  <strong>XY</strong>
-                  <span>axial</span>
-                  <output data-demo-plane-output="xy">z = 128</output>
-                </div>
-                <figure class="demo-view">
-                  <canvas data-demo-view="xy" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noise-free engine CT axial view"></canvas>
-                  <figcaption><span data-demo-input-caption>Noise-free CT</span> · XY</figcaption>
-                </figure>
-                <figure class="demo-view demo-view-ours">
-                  <canvas data-demo-view="xy" data-demo-method="foj" width="512" height="512" tabindex="0" aria-label="3D FoJ axial view"></canvas>
-                  <figcaption>Junction regions · XY</figcaption>
-                </figure>
-                <figure class="demo-view">
-                  <canvas data-demo-view="xy" data-demo-method="boundary" width="512" height="512" tabindex="0" aria-label="3D FoJ global boundary map axial view"></canvas>
-                  <figcaption>Junction boundaries · XY</figcaption>
-                </figure>
-
-                <div class="demo-plane-label">
-                  <strong>YZ</strong>
-                  <span>sagittal</span>
-                  <output data-demo-plane-output="yz">x = 128</output>
-                </div>
-                <figure class="demo-view">
-                  <canvas data-demo-view="yz" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noise-free engine CT sagittal view"></canvas>
-                  <figcaption><span data-demo-input-caption>Noise-free CT</span> · YZ</figcaption>
-                </figure>
-                <figure class="demo-view demo-view-ours">
-                  <canvas data-demo-view="yz" data-demo-method="foj" width="512" height="512" tabindex="0" aria-label="3D FoJ sagittal view"></canvas>
-                  <figcaption>Junction regions · YZ</figcaption>
-                </figure>
-                <figure class="demo-view">
-                  <canvas data-demo-view="yz" data-demo-method="boundary" width="512" height="512" tabindex="0" aria-label="3D FoJ global boundary map sagittal view"></canvas>
-                  <figcaption>Junction boundaries · YZ</figcaption>
-                </figure>
-
-                <div class="demo-plane-label">
-                  <strong>XZ</strong>
-                  <span>coronal</span>
-                  <output data-demo-plane-output="xz">y = 128</output>
-                </div>
-                <figure class="demo-view">
-                  <canvas data-demo-view="xz" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noise-free engine CT coronal view"></canvas>
-                  <figcaption><span data-demo-input-caption>Noise-free CT</span> · XZ</figcaption>
-                </figure>
-                <figure class="demo-view demo-view-ours">
-                  <canvas data-demo-view="xz" data-demo-method="foj" width="512" height="512" tabindex="0" aria-label="3D FoJ coronal view"></canvas>
-                  <figcaption>Junction regions · XZ</figcaption>
-                </figure>
-                <figure class="demo-view">
-                  <canvas data-demo-view="xz" data-demo-method="boundary" width="512" height="512" tabindex="0" aria-label="3D FoJ global boundary map coronal view"></canvas>
-                  <figcaption>Junction boundaries · XZ</figcaption>
-                </figure>
-              </div>
+                <label class="demo-volume-threshold">
+                  <span>Surface level <output data-demo-volume-threshold-output>36</output></span>
+                  <input type="range" min="8" max="150" value="36" step="1" data-demo-volume-threshold aria-label="3D surface level">
+                </label>
+                <p class="demo-volume-hint"><strong>Drag</strong> to rotate · <strong>Scroll</strong> to zoom · <strong>Double-click</strong> to reset</p>
+              </aside>
             </div>
 
             <div class="demo-footer">

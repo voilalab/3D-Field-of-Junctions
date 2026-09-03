@@ -99,6 +99,12 @@ if (demoRoot) {
   const inputMeta = demoRoot.querySelector("[data-demo-input-meta]");
   const fojMeta = demoRoot.querySelector("[data-demo-foj-meta]");
   const inputCaptions = Array.from(demoRoot.querySelectorAll("[data-demo-input-caption]"));
+  const volumeCanvas = demoRoot.querySelector("[data-demo-volume]");
+  const volumeStatus = demoRoot.querySelector("[data-demo-volume-status]");
+  const volumeTitle = demoRoot.querySelector("[data-demo-volume-title]");
+  const volumeReset = demoRoot.querySelector("[data-demo-volume-reset]");
+  const volumeThreshold = demoRoot.querySelector("[data-demo-volume-threshold]");
+  const volumeThresholdOutput = demoRoot.querySelector("[data-demo-volume-threshold-output]");
   const sliders = Object.fromEntries(
     Array.from(demoRoot.querySelectorAll("[data-demo-axis-slider]")).map((slider) => [slider.dataset.demoAxisSlider, slider])
   );
@@ -120,6 +126,318 @@ if (demoRoot) {
     loadRequestId: 0,
     renderQueued: false
   };
+
+  function createVolumeRenderer(canvas) {
+    const unavailable = {
+      setLoading() {},
+      setVolume() {},
+      render() {}
+    };
+    if (!canvas) return unavailable;
+
+    const gl = canvas.getContext("webgl2", {
+      alpha: false,
+      antialias: true,
+      powerPreference: "high-performance"
+    });
+    if (!gl) {
+      volumeStatus.textContent = "WebGL 2 is required for the 3D view.";
+      return unavailable;
+    }
+
+    const vertexSource = `#version 300 es
+      layout(location = 0) in vec2 a_position;
+      out vec2 v_uv;
+
+      void main() {
+        v_uv = a_position * 0.5 + 0.5;
+        gl_Position = vec4(a_position, 0.0, 1.0);
+      }
+    `;
+
+    const fragmentSource = `#version 300 es
+      precision highp float;
+      precision highp sampler3D;
+
+      in vec2 v_uv;
+      uniform sampler3D u_volume;
+      uniform vec2 u_rotation;
+      uniform float u_zoom;
+      uniform float u_threshold;
+      uniform float u_aspect;
+      out vec4 out_color;
+
+      vec3 rotate_x(vec3 point, float angle) {
+        float sine = sin(angle);
+        float cosine = cos(angle);
+        return vec3(point.x, cosine * point.y - sine * point.z, sine * point.y + cosine * point.z);
+      }
+
+      vec3 rotate_y(vec3 point, float angle) {
+        float sine = sin(angle);
+        float cosine = cos(angle);
+        return vec3(cosine * point.x + sine * point.z, point.y, -sine * point.x + cosine * point.z);
+      }
+
+      vec3 view_to_volume(vec3 point) {
+        return rotate_y(rotate_x(point, -u_rotation.y), -u_rotation.x);
+      }
+
+      vec2 intersect_box(vec3 origin, vec3 direction) {
+        vec3 inverse_direction = 1.0 / direction;
+        vec3 first = (vec3(0.0) - origin) * inverse_direction;
+        vec3 second = (vec3(1.0) - origin) * inverse_direction;
+        vec3 near_plane = min(first, second);
+        vec3 far_plane = max(first, second);
+        float near_distance = max(max(near_plane.x, near_plane.y), near_plane.z);
+        float far_distance = min(min(far_plane.x, far_plane.y), far_plane.z);
+        return vec2(near_distance, far_distance);
+      }
+
+      float volume_value(vec3 point) {
+        return texture(u_volume, clamp(point, vec3(0.0), vec3(1.0))).r;
+      }
+
+      void main() {
+        vec2 screen = v_uv * 2.0 - 1.0;
+        screen.x *= u_aspect;
+        screen /= u_zoom;
+
+        vec3 origin = view_to_volume(vec3(screen, -1.55)) + vec3(0.5);
+        vec3 direction = normalize(view_to_volume(vec3(0.0, 0.0, 1.0)));
+        vec2 hit = intersect_box(origin, direction);
+        float start_distance = max(hit.x, 0.0);
+
+        vec3 background = mix(vec3(0.025), vec3(0.075), v_uv.y);
+        if (hit.y <= start_distance) {
+          out_color = vec4(background, 1.0);
+          return;
+        }
+
+        float step_size = (hit.y - start_distance) / 192.0;
+        vec3 point = origin + direction * (start_distance + step_size * 0.5);
+        vec3 voxel = vec3(1.0 / 256.0);
+
+        for (int step_index = 0; step_index < 192; step_index += 1) {
+          float value = volume_value(point);
+          if (value >= u_threshold) {
+            vec3 gradient = vec3(
+              volume_value(point + vec3(voxel.x, 0.0, 0.0)) - volume_value(point - vec3(voxel.x, 0.0, 0.0)),
+              volume_value(point + vec3(0.0, voxel.y, 0.0)) - volume_value(point - vec3(0.0, voxel.y, 0.0)),
+              volume_value(point + vec3(0.0, 0.0, voxel.z)) - volume_value(point - vec3(0.0, 0.0, voxel.z))
+            );
+            vec3 normal = normalize(gradient + vec3(0.00001));
+            vec3 light_direction = normalize(view_to_volume(vec3(-0.45, 0.65, -0.6)));
+            float diffuse = 0.32 + 0.68 * abs(dot(normal, light_direction));
+            float rim = pow(1.0 - abs(dot(normal, -direction)), 2.0);
+            float material = smoothstep(u_threshold, 1.0, value);
+            vec3 base = mix(vec3(0.48, 0.50, 0.53), vec3(0.83, 0.69, 0.48), material * 0.48);
+            vec3 color = base * diffuse + vec3(0.24, 0.19, 0.12) * rim;
+            float depth_fade = mix(1.0, 0.78, (float(step_index) / 192.0));
+            out_color = vec4(color * depth_fade, 1.0);
+            return;
+          }
+          point += direction * step_size;
+        }
+
+        out_color = vec4(background, 1.0);
+      }
+    `;
+
+    function compileShader(type, source) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        const message = gl.getShaderInfoLog(shader);
+        gl.deleteShader(shader);
+        throw new Error(message || "Could not compile the 3D volume shader");
+      }
+      return shader;
+    }
+
+    let program;
+    try {
+      const vertexShader = compileShader(gl.VERTEX_SHADER, vertexSource);
+      const fragmentShader = compileShader(gl.FRAGMENT_SHADER, fragmentSource);
+      program = gl.createProgram();
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+      gl.deleteShader(vertexShader);
+      gl.deleteShader(fragmentShader);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        throw new Error(gl.getProgramInfoLog(program) || "Could not link the 3D volume shader");
+      }
+    } catch (error) {
+      console.error(error);
+      volumeStatus.textContent = "The 3D renderer could not be initialized.";
+      return unavailable;
+    }
+
+    const quad = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+      gl.STATIC_DRAW
+    );
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+    const texture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_3D, texture);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
+    const uniforms = {
+      volume: gl.getUniformLocation(program, "u_volume"),
+      rotation: gl.getUniformLocation(program, "u_rotation"),
+      zoom: gl.getUniformLocation(program, "u_zoom"),
+      threshold: gl.getUniformLocation(program, "u_threshold"),
+      aspect: gl.getUniformLocation(program, "u_aspect")
+    };
+    const viewState = {
+      yaw: -0.7,
+      pitch: 0.42,
+      zoom: 1,
+      threshold: Number(volumeThreshold?.value || 36) / 255,
+      hasVolume: false,
+      dragging: false,
+      pointerId: null,
+      lastX: 0,
+      lastY: 0
+    };
+
+    function resizeCanvas() {
+      const bounds = canvas.getBoundingClientRect();
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      const width = Math.max(1, Math.min(640, Math.round(bounds.width * pixelRatio)));
+      const height = Math.max(1, Math.min(640, Math.round(bounds.height * pixelRatio)));
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+    }
+
+    function renderVolume() {
+      resizeCanvas();
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.clearColor(0.025, 0.025, 0.025, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      if (!viewState.hasVolume) return;
+      gl.useProgram(program);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_3D, texture);
+      gl.uniform1i(uniforms.volume, 0);
+      gl.uniform2f(uniforms.rotation, viewState.yaw, viewState.pitch);
+      gl.uniform1f(uniforms.zoom, viewState.zoom);
+      gl.uniform1f(uniforms.threshold, viewState.threshold);
+      gl.uniform1f(uniforms.aspect, canvas.width / canvas.height);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+
+    function resetView() {
+      viewState.yaw = -0.7;
+      viewState.pitch = 0.42;
+      viewState.zoom = 1;
+      renderVolume();
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      viewState.dragging = true;
+      viewState.pointerId = event.pointerId;
+      viewState.lastX = event.clientX;
+      viewState.lastY = event.clientY;
+      canvas.setPointerCapture?.(event.pointerId);
+      canvas.focus();
+    });
+    canvas.addEventListener("pointermove", (event) => {
+      if (!viewState.dragging || event.pointerId !== viewState.pointerId) return;
+      const deltaX = event.clientX - viewState.lastX;
+      const deltaY = event.clientY - viewState.lastY;
+      viewState.lastX = event.clientX;
+      viewState.lastY = event.clientY;
+      viewState.yaw += deltaX * 0.009;
+      viewState.pitch = Math.max(-1.45, Math.min(1.45, viewState.pitch + deltaY * 0.009));
+      renderVolume();
+    });
+    function stopDragging(event) {
+      if (event.pointerId !== viewState.pointerId) return;
+      viewState.dragging = false;
+      viewState.pointerId = null;
+    }
+    canvas.addEventListener("pointerup", stopDragging);
+    canvas.addEventListener("pointercancel", stopDragging);
+    canvas.addEventListener(
+      "wheel",
+      (event) => {
+        event.preventDefault();
+        viewState.zoom = Math.max(0.65, Math.min(2.4, viewState.zoom * Math.exp(-event.deltaY * 0.0012)));
+        renderVolume();
+      },
+      { passive: false }
+    );
+    canvas.addEventListener("dblclick", resetView);
+    canvas.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "-", "="].includes(event.key)) return;
+      event.preventDefault();
+      if (event.key === "ArrowLeft") viewState.yaw -= 0.08;
+      if (event.key === "ArrowRight") viewState.yaw += 0.08;
+      if (event.key === "ArrowUp") viewState.pitch = Math.max(-1.45, viewState.pitch - 0.08);
+      if (event.key === "ArrowDown") viewState.pitch = Math.min(1.45, viewState.pitch + 0.08);
+      if (event.key === "+" || event.key === "=") viewState.zoom = Math.min(2.4, viewState.zoom * 1.08);
+      if (event.key === "-") viewState.zoom = Math.max(0.65, viewState.zoom / 1.08);
+      renderVolume();
+    });
+    volumeReset?.addEventListener("click", resetView);
+    volumeThreshold?.addEventListener("input", () => {
+      const value = Number(volumeThreshold.value);
+      viewState.threshold = value / 255;
+      volumeThresholdOutput.textContent = String(value);
+      renderVolume();
+    });
+
+    if ("ResizeObserver" in window) {
+      const resizeObserver = new ResizeObserver(renderVolume);
+      resizeObserver.observe(canvas);
+    } else {
+      window.addEventListener("resize", renderVolume);
+    }
+
+    return {
+      setLoading(label) {
+        volumeStatus.textContent = `Loading ${label} 3D volume…`;
+      },
+      setVolume(volume) {
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_3D, texture);
+        gl.texImage3D(
+          gl.TEXTURE_3D,
+          0,
+          gl.R8,
+          VOLUME_SIZE,
+          VOLUME_SIZE,
+          VOLUME_SIZE,
+          0,
+          gl.RED,
+          gl.UNSIGNED_BYTE,
+          volume
+        );
+        viewState.hasVolume = true;
+        volumeStatus.textContent = "";
+        renderVolume();
+      },
+      render: renderVolume
+    };
+  }
+
+  const volumeRenderer = createVolumeRenderer(volumeCanvas);
 
   function clamp(value) {
     return Math.max(0, Math.min(VOLUME_SIZE - 1, Math.round(value)));
@@ -301,6 +619,8 @@ if (demoRoot) {
     inputCaptions.forEach((caption) => {
       caption.textContent = config.inputTitle;
     });
+    volumeTitle.textContent = `${config.label} · 3D FoJ`;
+    volumeCanvas.setAttribute("aria-label", `Rotatable 3D rendering of the ${config.label} 3D FoJ volume`);
     methodLabels.input = `${config.label} engine CT input`;
     methodLabels.foj = `${config.label} 3D FoJ junction regions`;
     methodLabels.boundary = `${config.label} 3D FoJ global boundary map`;
@@ -341,6 +661,7 @@ if (demoRoot) {
     const previousLevel = state.noiseLevel;
     state.loadRequestId = requestId;
     updateNoiseLabels(levelKey);
+    volumeRenderer.setLoading(noiseLevels[levelKey].label);
     demoRoot.setAttribute("aria-busy", "true");
 
     try {
@@ -348,6 +669,7 @@ if (demoRoot) {
       if (requestId !== state.loadRequestId) return;
       state.noiseLevel = levelKey;
       state.volumes = volumes;
+      volumeRenderer.setVolume(volumes.foj);
       status.textContent = "";
       demoRoot.setAttribute("aria-busy", "false");
       matrix.removeAttribute("aria-hidden");
