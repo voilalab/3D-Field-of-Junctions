@@ -1062,13 +1062,18 @@ kbd {
   display: none;
 }
 
-.demo-volume-threshold {
+.demo-volume-controls {
   display: grid;
   margin-top: 13px;
+  gap: 9px;
+}
+
+.demo-volume-control {
+  display: grid;
   gap: 5px;
 }
 
-.demo-volume-threshold span {
+.demo-volume-control span {
   display: flex;
   justify-content: space-between;
   color: #aaa;
@@ -1076,11 +1081,11 @@ kbd {
   text-transform: uppercase;
 }
 
-.demo-volume-threshold output {
+.demo-volume-control output {
   color: var(--gold-light);
 }
 
-.demo-volume-threshold input {
+.demo-volume-control input {
   width: 100%;
   margin: 0;
   accent-color: var(--gold-dark);
@@ -1919,8 +1924,9 @@ kbd {
     font-size: 0.48rem;
   }
 
-  .demo-volume-threshold {
+  .demo-volume-controls {
     margin-top: 7px;
+    gap: 5px;
   }
 
   .demo-volume-hint {

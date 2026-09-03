@@ -103,6 +103,8 @@ if (demoRoot) {
   const volumeStatus = demoRoot.querySelector("[data-demo-volume-status]");
   const volumeTitle = demoRoot.querySelector("[data-demo-volume-title]");
   const volumeReset = demoRoot.querySelector("[data-demo-volume-reset]");
+  const volumeCut = demoRoot.querySelector("[data-demo-volume-cut]");
+  const volumeCutOutput = demoRoot.querySelector("[data-demo-volume-cut-output]");
   const volumeThreshold = demoRoot.querySelector("[data-demo-volume-threshold]");
   const volumeThresholdOutput = demoRoot.querySelector("[data-demo-volume-threshold-output]");
   const sliders = Object.fromEntries(
@@ -162,7 +164,7 @@ if (demoRoot) {
       in vec2 v_uv;
       uniform sampler3D u_volume;
       uniform vec2 u_rotation;
-      uniform float u_zoom;
+      uniform float u_cut;
       uniform float u_threshold;
       uniform float u_aspect;
       out vec4 out_color;
@@ -201,12 +203,12 @@ if (demoRoot) {
       void main() {
         vec2 screen = v_uv * 2.0 - 1.0;
         screen.x *= u_aspect;
-        screen /= u_zoom;
 
         vec3 origin = view_to_volume(vec3(screen, -1.55)) + vec3(0.5);
         vec3 direction = normalize(view_to_volume(vec3(0.0, 0.0, 1.0)));
         vec2 hit = intersect_box(origin, direction);
-        float start_distance = max(hit.x, 0.0);
+        float clip_distance = 0.68 + u_cut * 1.74;
+        float start_distance = max(max(hit.x, 0.0), clip_distance);
 
         vec3 background = mix(vec3(0.025), vec3(0.075), v_uv.y);
         if (hit.y <= start_distance) {
@@ -217,6 +219,17 @@ if (demoRoot) {
         float step_size = (hit.y - start_distance) / 192.0;
         vec3 point = origin + direction * (start_distance + step_size * 0.5);
         vec3 voxel = vec3(1.0 / 256.0);
+
+        bool cut_intersects_ray = u_cut > 0.001 && clip_distance >= hit.x && clip_distance <= hit.y;
+        if (cut_intersects_ray) {
+          float cut_value = volume_value(origin + direction * clip_distance);
+          if (cut_value > 0.018) {
+            float cut_tone = smoothstep(0.018, 0.85, cut_value);
+            vec3 cut_color = mix(vec3(0.16, 0.17, 0.18), vec3(0.88, 0.74, 0.52), cut_tone);
+            out_color = vec4(cut_color * (0.7 + 0.3 * cut_tone), 1.0);
+            return;
+          }
+        }
 
         for (int step_index = 0; step_index < 192; step_index += 1) {
           float value = volume_value(point);
@@ -298,14 +311,14 @@ if (demoRoot) {
     const uniforms = {
       volume: gl.getUniformLocation(program, "u_volume"),
       rotation: gl.getUniformLocation(program, "u_rotation"),
-      zoom: gl.getUniformLocation(program, "u_zoom"),
+      cut: gl.getUniformLocation(program, "u_cut"),
       threshold: gl.getUniformLocation(program, "u_threshold"),
       aspect: gl.getUniformLocation(program, "u_aspect")
     };
     const viewState = {
       yaw: -0.7,
       pitch: 0.42,
-      zoom: 1,
+      cut: Number(volumeCut?.value || 0) / 100,
       threshold: Number(volumeThreshold?.value || 36) / 255,
       hasVolume: false,
       dragging: false,
@@ -336,7 +349,7 @@ if (demoRoot) {
       gl.bindTexture(gl.TEXTURE_3D, texture);
       gl.uniform1i(uniforms.volume, 0);
       gl.uniform2f(uniforms.rotation, viewState.yaw, viewState.pitch);
-      gl.uniform1f(uniforms.zoom, viewState.zoom);
+      gl.uniform1f(uniforms.cut, viewState.cut);
       gl.uniform1f(uniforms.threshold, viewState.threshold);
       gl.uniform1f(uniforms.aspect, canvas.width / canvas.height);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -345,7 +358,17 @@ if (demoRoot) {
     function resetView() {
       viewState.yaw = -0.7;
       viewState.pitch = 0.42;
-      viewState.zoom = 1;
+      viewState.cut = 0;
+      volumeCut.value = "0";
+      volumeCutOutput.textContent = "0%";
+      renderVolume();
+    }
+
+    function setCutDepth(nextCut) {
+      viewState.cut = Math.max(0, Math.min(0.94, nextCut));
+      const percentage = Math.round(viewState.cut * 100);
+      volumeCut.value = String(percentage);
+      volumeCutOutput.textContent = `${percentage}%`;
       renderVolume();
     }
 
@@ -378,24 +401,30 @@ if (demoRoot) {
       "wheel",
       (event) => {
         event.preventDefault();
-        viewState.zoom = Math.max(0.65, Math.min(2.4, viewState.zoom * Math.exp(-event.deltaY * 0.0012)));
-        renderVolume();
+        setCutDepth(viewState.cut + event.deltaY * 0.0012);
       },
       { passive: false }
     );
     canvas.addEventListener("dblclick", resetView);
     canvas.addEventListener("keydown", (event) => {
-      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "-", "="].includes(event.key)) return;
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "PageUp", "PageDown", "+", "-", "="].includes(event.key)) return;
       event.preventDefault();
       if (event.key === "ArrowLeft") viewState.yaw -= 0.08;
       if (event.key === "ArrowRight") viewState.yaw += 0.08;
       if (event.key === "ArrowUp") viewState.pitch = Math.max(-1.45, viewState.pitch - 0.08);
       if (event.key === "ArrowDown") viewState.pitch = Math.min(1.45, viewState.pitch + 0.08);
-      if (event.key === "+" || event.key === "=") viewState.zoom = Math.min(2.4, viewState.zoom * 1.08);
-      if (event.key === "-") viewState.zoom = Math.max(0.65, viewState.zoom / 1.08);
-      renderVolume();
+      if (event.key === "+" || event.key === "=" || event.key === "PageDown") {
+        setCutDepth(viewState.cut + 0.025);
+      } else if (event.key === "-" || event.key === "PageUp") {
+        setCutDepth(viewState.cut - 0.025);
+      } else {
+        renderVolume();
+      }
     });
     volumeReset?.addEventListener("click", resetView);
+    volumeCut?.addEventListener("input", () => {
+      setCutDepth(Number(volumeCut.value) / 100);
+    });
     volumeThreshold?.addEventListener("input", () => {
       const value = Number(volumeThreshold.value);
       viewState.threshold = value / 255;
@@ -620,7 +649,7 @@ if (demoRoot) {
       caption.textContent = config.inputTitle;
     });
     volumeTitle.textContent = `${config.label} · 3D FoJ`;
-    volumeCanvas.setAttribute("aria-label", `Rotatable 3D rendering of the ${config.label} 3D FoJ volume`);
+    volumeCanvas.setAttribute("aria-label", `Rotatable cutaway rendering of the ${config.label} 3D FoJ volume`);
     methodLabels.input = `${config.label} engine CT input`;
     methodLabels.foj = `${config.label} 3D FoJ junction regions`;
     methodLabels.boundary = `${config.label} 3D FoJ global boundary map`;

@@ -32,7 +32,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
     <link rel="icon" href="static/images/voila.ico" sizes="64x64">
-    <link rel="stylesheet" href="static/css/index.css?v=volume-renderer-20260903">
+    <link rel="stylesheet" href="static/css/index.css?v=volume-cutaway-20260903">
 
     <script type="application/ld+json">
       {
@@ -54,7 +54,7 @@
         "codeRepository": "https://github.com/voilalab/3D-Field-of-Junctions"
       }
     </script>
-    <script defer src="static/js/index.js?v=volume-renderer-20260903"></script>
+    <script defer src="static/js/index.js?v=volume-cutaway-20260903"></script>
   </head>
 
   <body>
@@ -296,14 +296,20 @@
                   <button type="button" data-demo-volume-reset>Reset</button>
                 </div>
                 <div class="demo-volume-canvas-wrap">
-                  <canvas data-demo-volume width="512" height="512" tabindex="0" aria-label="Rotatable 3D rendering of the clean 3D FoJ volume"></canvas>
+                  <canvas data-demo-volume width="512" height="512" tabindex="0" aria-label="Rotatable cutaway rendering of the clean 3D FoJ volume"></canvas>
                   <p class="demo-volume-status" data-demo-volume-status role="status" aria-live="polite">Loading 3D volume…</p>
                 </div>
-                <label class="demo-volume-threshold">
-                  <span>Surface level <output data-demo-volume-threshold-output>36</output></span>
-                  <input type="range" min="8" max="150" value="36" step="1" data-demo-volume-threshold aria-label="3D surface level">
-                </label>
-                <p class="demo-volume-hint"><strong>Drag</strong> to rotate · <strong>Scroll</strong> to zoom · <strong>Double-click</strong> to reset</p>
+                <div class="demo-volume-controls">
+                  <label class="demo-volume-control">
+                    <span>Cut depth <output data-demo-volume-cut-output>0%</output></span>
+                    <input type="range" min="0" max="94" value="0" step="1" data-demo-volume-cut aria-label="3D cut depth">
+                  </label>
+                  <label class="demo-volume-control">
+                    <span>Surface level <output data-demo-volume-threshold-output>36</output></span>
+                    <input type="range" min="8" max="150" value="36" step="1" data-demo-volume-threshold aria-label="3D surface level">
+                  </label>
+                </div>
+                <p class="demo-volume-hint"><strong>Drag</strong> to rotate · <strong>Scroll</strong> through the volume · <strong>Double-click</strong> to reset</p>
               </aside>
             </div>
 
