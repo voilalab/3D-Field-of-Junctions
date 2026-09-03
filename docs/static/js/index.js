@@ -203,6 +203,7 @@ if (demoRoot) {
       void main() {
         vec2 screen = v_uv * 2.0 - 1.0;
         screen.x *= u_aspect;
+        screen *= 0.8;
 
         vec3 origin = view_to_volume(vec3(screen, -1.55)) + vec3(0.5);
         vec3 direction = normalize(view_to_volume(vec3(0.0, 0.0, 1.0)));
