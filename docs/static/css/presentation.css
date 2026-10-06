@@ -1,0 +1,36 @@
+/* Keep the original demo and its interactions; fit the complete canvas to the slide. */
+html, body.presentation-demo { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #0d0d0d; }
+.presentation-stage { position: absolute; left: 50%; top: 50%; width: 1120px; transform-origin: center center; }
+.presentation-demo .demo-shell { width: 1120px; max-width: none; border: 0; border-radius: 0; margin: 0; }
+.presentation-demo .demo-header, .presentation-demo .demo-footer { display: none; }
+.presentation-demo .demo-noise-bar { grid-template-columns: auto auto 1fr; padding: 8px 14px; gap: 18px; }
+.presentation-demo .demo-noise-selector { grid-template-columns: repeat(4, 76px); }
+.presentation-demo .demo-noise-selector button { min-height: 36px; }
+.presentation-demo .demo-coordinate-bar { grid-template-columns: auto 1fr auto; padding: 8px 14px; gap: 20px; }
+.presentation-demo .demo-axis-sliders { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.presentation-demo .demo-workspace { grid-template-columns: minmax(0, 1fr) 300px; }
+.presentation-demo .demo-matrix-wrap { padding: 10px; overflow: hidden; }
+.presentation-demo .demo-matrix { min-width: 0; grid-template-columns: 64px repeat(3, minmax(0, 1fr)); }
+.presentation-demo .demo-matrix-corner, .presentation-demo .demo-method-head { min-height: 52px; }
+.presentation-demo .demo-method-head { display: grid; align-content: center; padding: 7px 10px; gap: 2px; }
+.presentation-demo .demo-method-head strong { font-size: .86rem; }
+.presentation-demo .demo-method-head small { text-align: left; font-size: .58rem; }
+.presentation-demo .demo-volume-panel { display: block; padding: 10px; }
+.presentation-demo .demo-volume-head { min-height: 38px; }
+.presentation-demo .demo-volume-view + .demo-volume-view { margin-top: 10px; padding-top: 10px; }
+.presentation-demo .demo-volume-canvas-wrap { aspect-ratio: 1; width: 100%; }
+.presentation-demo .demo-volume-controls { grid-template-columns: 1fr; gap: 8px; margin-top: 10px; }
+.presentation-demo .demo-volume-hint { font-size: .65rem; }
+.presentation-demo .demo-view canvas { width: 100%; height: auto; aspect-ratio: 1; }
+.presentation-demo .demo-plane-label { padding: 8px 4px; }
+.presentation-demo .demo-plane-label output { font-size: .58rem; }
+.presentation-demo .demo-plane-label span { font-size: .52rem; }
+/* A wide slide puts the two volume views side by side, with linked slices on the left. */
+.presentation-demo .presentation-stage, .presentation-demo .demo-shell { width: 1440px; }
+.presentation-demo .demo-workspace { grid-template-columns: 1fr 1fr; }
+.presentation-demo .demo-volume-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: center; gap: 24px 16px; padding: 20px; }
+.presentation-demo .demo-volume-view + .demo-volume-view { margin: 0; border: 0; padding: 0; }
+.presentation-demo .demo-volume-controls { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; gap: 20px; margin: 0; }
+.presentation-demo .demo-volume-hint { display: block; grid-column: 1 / -1; margin: 0; text-align: center; }
+.presentation-demo .demo-noise-bar > p { display: block; max-width: none; }
+.presentation-demo .demo-interaction-hint { display: block; }

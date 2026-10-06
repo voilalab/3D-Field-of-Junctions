@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D Field of Junctions · Presentation Demo</title>
+<link rel="icon" href="static/images/voila.ico">
+<link rel="stylesheet" href="static/css/index.css?v=volume-error-overlay-20260903">
+<link rel="stylesheet" href="static/css/presentation.css">
+<script defer src="static/js/index.js?v=volume-error-overlay-20260903"></script>
+<script defer src="static/js/presentation.js"></script>
+</head>
+<body class="presentation-demo">
+<main class="presentation-stage" aria-label="3D Field of Junctions interactive demo">
+<div class="demo-shell is-visible" data-foj-demo aria-busy="true">
+            <div class="demo-header">
+              <div class="demo-experiment-title">
+                <span class="demo-live-mark" aria-hidden="true"></span>
+                <div>
+                  <span class="demo-micro-label">Structural robustness · fixed FoJ settings</span>
+                  <strong>Engine CT · 3D junction field</strong>
+                </div>
+              </div>
+              <div class="demo-experiment-facts" aria-label="Experiment details">
+                <span><strong>256³</strong> native voxels</span>
+                <span><strong>4</strong> noise states</span>
+                <span><strong>0</strong> training volumes</span>
+              </div>
+            </div>
+
+            <div class="demo-noise-bar">
+              <div class="demo-noise-copy">
+                <span class="demo-micro-label">Poisson noise level</span>
+                <strong data-demo-noise-title>Clean reference</strong>
+              </div>
+              <div class="demo-noise-selector" role="group" aria-label="Poisson noise level">
+                <button type="button" data-demo-noise="clean" aria-pressed="true"><strong>Clean</strong><span>reference</span></button>
+                <button type="button" data-demo-noise="p100" aria-pressed="false"><strong>P100</strong><span>mild</span></button>
+                <button type="button" data-demo-noise="p50" aria-pressed="false"><strong>P50</strong><span>moderate</span></button>
+                <button type="button" data-demo-noise="p20" aria-pressed="false"><strong>P20</strong><span>severe</span></button>
+              </div>
+              <p data-demo-noise-description>No added noise; the experiment volume is shown as the reference state.</p>
+            </div>
+
+            <div class="demo-coordinate-bar">
+              <div class="demo-coordinate-readout" aria-live="polite">
+                <span class="demo-micro-label">Linked voxel</span>
+                <strong>(<span data-demo-x>128</span>, <span data-demo-y>128</span>, <span data-demo-z>128</span>)</strong>
+              </div>
+
+              <div class="demo-axis-sliders">
+                <label>
+                  <span>x <output data-demo-axis-output="x">128</output></span>
+                  <input type="range" min="0" max="255" value="128" step="1" data-demo-axis-slider="x" aria-label="X coordinate">
+                </label>
+                <label>
+                  <span>y <output data-demo-axis-output="y">128</output></span>
+                  <input type="range" min="0" max="255" value="128" step="1" data-demo-axis-slider="y" aria-label="Y coordinate">
+                </label>
+                <label>
+                  <span>z <output data-demo-axis-output="z">128</output></span>
+                  <input type="range" min="0" max="255" value="128" step="1" data-demo-axis-slider="z" aria-label="Z coordinate">
+                </label>
+              </div>
+
+              <div class="demo-interaction-hint">
+                <span>Drag</span> crosshair · <span>Scroll</span> through depth
+              </div>
+            </div>
+
+            <div class="demo-workspace">
+              <div class="demo-matrix-wrap">
+                <div class="demo-loading" data-demo-status role="status" aria-live="polite">
+                  Loading the engine CT and fitted junction field…
+                </div>
+
+                <div class="demo-matrix" data-demo-matrix>
+                  <div class="demo-matrix-corner" aria-hidden="true">
+                    <span>orientation</span>
+                    <span>representation</span>
+                  </div>
+                  <div class="demo-method-head">
+                    <div>
+                      <span class="demo-micro-label">Input</span>
+                      <strong data-demo-input-title>Noise-free CT</strong>
+                    </div>
+                    <small data-demo-input-meta>Clean reference</small>
+                  </div>
+                  <div class="demo-method-head demo-method-head-ours">
+                    <div>
+                      <span class="demo-micro-label">Local model</span>
+                      <strong>Junction regions</strong>
+                    </div>
+                    <small data-demo-foj-meta>28.99 dB vs clean</small>
+                  </div>
+                  <div class="demo-method-head">
+                    <div>
+                      <span class="demo-micro-label">Global structure</span>
+                      <strong>Junction boundaries</strong>
+                    </div>
+                    <small>Continuous global contour map</small>
+                  </div>
+
+                  <div class="demo-plane-label">
+                    <strong>XY</strong>
+                    <span>axial</span>
+                    <output data-demo-plane-output="xy">z = 128</output>
+                  </div>
+                  <figure class="demo-view">
+                    <canvas data-demo-view="xy" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noise-free engine CT axial view"></canvas>
+                    <figcaption><span data-demo-input-caption>Noise-free CT</span> · XY</figcaption>
+                  </figure>
+                  <figure class="demo-view demo-view-ours">
+                    <canvas data-demo-view="xy" data-demo-method="foj" width="512" height="512" tabindex="0" aria-label="3D FoJ axial view"></canvas>
+                    <figcaption>Junction regions · XY</figcaption>
+                  </figure>
+                  <figure class="demo-view">
+                    <canvas data-demo-view="xy" data-demo-method="boundary" width="512" height="512" tabindex="0" aria-label="3D FoJ global boundary map axial view"></canvas>
+                    <figcaption>Junction boundaries · XY</figcaption>
+                  </figure>
+
+                  <div class="demo-plane-label">
+                    <strong>YZ</strong>
+                    <span>sagittal</span>
+                    <output data-demo-plane-output="yz">x = 128</output>
+                  </div>
+                  <figure class="demo-view">
+                    <canvas data-demo-view="yz" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noise-free engine CT sagittal view"></canvas>
+                    <figcaption><span data-demo-input-caption>Noise-free CT</span> · YZ</figcaption>
+                  </figure>
+                  <figure class="demo-view demo-view-ours">
+                    <canvas data-demo-view="yz" data-demo-method="foj" width="512" height="512" tabindex="0" aria-label="3D FoJ sagittal view"></canvas>
+                    <figcaption>Junction regions · YZ</figcaption>
+                  </figure>
+                  <figure class="demo-view">
+                    <canvas data-demo-view="yz" data-demo-method="boundary" width="512" height="512" tabindex="0" aria-label="3D FoJ global boundary map sagittal view"></canvas>
+                    <figcaption>Junction boundaries · YZ</figcaption>
+                  </figure>
+
+                  <div class="demo-plane-label">
+                    <strong>XZ</strong>
+                    <span>coronal</span>
+                    <output data-demo-plane-output="xz">y = 128</output>
+                  </div>
+                  <figure class="demo-view">
+                    <canvas data-demo-view="xz" data-demo-method="input" width="512" height="512" tabindex="0" aria-label="Noise-free engine CT coronal view"></canvas>
+                    <figcaption><span data-demo-input-caption>Noise-free CT</span> · XZ</figcaption>
+                  </figure>
+                  <figure class="demo-view demo-view-ours">
+                    <canvas data-demo-view="xz" data-demo-method="foj" width="512" height="512" tabindex="0" aria-label="3D FoJ coronal view"></canvas>
+                    <figcaption>Junction regions · XZ</figcaption>
+                  </figure>
+                  <figure class="demo-view">
+                    <canvas data-demo-view="xz" data-demo-method="boundary" width="512" height="512" tabindex="0" aria-label="3D FoJ global boundary map coronal view"></canvas>
+                    <figcaption>Junction boundaries · XZ</figcaption>
+                  </figure>
+                </div>
+              </div>
+
+              <aside class="demo-volume-panel" aria-label="Interactive 3D volume renderer">
+                <div class="demo-volume-view">
+                  <div class="demo-volume-head">
+                    <div>
+                      <span class="demo-micro-label">3D FoJ</span>
+                      <strong data-demo-volume-title>Clean result</strong>
+                    </div>
+                    <button type="button" data-demo-volume-reset>Reset</button>
+                  </div>
+                  <div class="demo-volume-canvas-wrap">
+                    <canvas data-demo-volume width="512" height="512" tabindex="0" aria-label="Rotatable cutaway rendering of the clean 3D FoJ volume"></canvas>
+                    <p class="demo-volume-status" data-demo-volume-status role="status" aria-live="polite">Loading 3D FoJ volume…</p>
+                  </div>
+                </div>
+
+                <div class="demo-volume-view demo-volume-view-input">
+                  <div class="demo-volume-head">
+                    <div>
+                      <span class="demo-micro-label">Noisy input</span>
+                      <strong data-demo-input-volume-title>Clean reference</strong>
+                    </div>
+                    <button class="demo-volume-error-toggle" type="button" data-demo-volume-error aria-label="Show residual magnitude: absolute difference between input and 3D FoJ" title="|Input − 3D FoJ|" aria-pressed="false" disabled>Residual</button>
+                  </div>
+                  <div class="demo-volume-canvas-wrap">
+                    <canvas data-demo-input-volume width="512" height="512" tabindex="0" aria-label="Rotatable cutaway rendering of the clean input volume"></canvas>
+                    <p class="demo-volume-status" data-demo-input-volume-status role="status" aria-live="polite">Loading input volume…</p>
+                  </div>
+                </div>
+                <div class="demo-volume-controls">
+                  <label class="demo-volume-control">
+                    <span>Cut depth <output data-demo-volume-cut-output>0%</output></span>
+                    <input type="range" min="0" max="94" value="0" step="1" data-demo-volume-cut aria-label="3D cut depth">
+                  </label>
+                  <label class="demo-volume-control">
+                    <span>Surface level <output data-demo-volume-threshold-output>36</output></span>
+                    <input type="range" min="8" max="150" value="36" step="1" data-demo-volume-threshold aria-label="3D surface level">
+                  </label>
+                </div>
+                <p class="demo-volume-hint"><strong>Drag</strong> to rotate · <strong>Scroll</strong> through the volume · <strong>Double-click</strong> to reset</p>
+              </aside>
+            </div>
+
+            <div class="demo-footer">
+              <div>
+                <strong>Paper CT. Actual fitted junctions.</strong>
+                <p>Every state uses the same 256³ source, dense overlapping 6³ patches, stride 2, search schedule, and random seed. Only the expected photon count changes; each noisy result is precomputed by the repository's actual 3D FoJ optimizer.</p>
+              </div>
+              <div class="demo-footer-legend" aria-label="Crosshair legend">
+                <span><i class="demo-line-x" aria-hidden="true"></i>x</span>
+                <span><i class="demo-line-y" aria-hidden="true"></i>y</span>
+                <span><i class="demo-line-z" aria-hidden="true"></i>z</span>
+              </div>
+            </div>
+            <noscript><p class="demo-noscript">Enable JavaScript to use the synchronized volumetric explorer.</p></noscript>
+          </div>
+</main>
+</body>
+</html>
